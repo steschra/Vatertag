@@ -4,7 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="Spielverwaltung (editierbare Runden)", layout="wide")
 st.title("Spielverwaltung mit editierbaren, eingeklappten Runden")
 
-# Initialisierung Session State
+# Session State initialisieren
 if "spieler" not in st.session_state:
     st.session_state.spieler = []
 if "multiplikatoren" not in st.session_state:
@@ -48,7 +48,7 @@ else:
         })
         st.session_state.runde_aktualisiert = False
 
-    # Alle Runden anzeigen (eingeklappt), Eingabefelder editierbar
+    # Alle Runden (eingeklappt) - immer editierbar
     for idx, runde in enumerate(st.session_state.runden):
         with st.expander(f"{runde['name']} {'(gespeichert)' if runde['saved'] else '(nicht gespeichert)'}", expanded=False):
             # Runde Name editierbar
@@ -86,7 +86,9 @@ else:
             for sp in st.session_state.spieler:
                 einsatz = runde["einsaetze"].get(sp["name"], 0)
                 platz = runde["plaetze"].get(sp["name"], 1)
-                multiplikator = st.session_state.multiplikatoren[platz - 1] if 0 < platz <= len(st.session_state.multiplikatoren) else 0
+                multiplikator = 0
+                if 0 < platz <= len(st.session_state.multiplikatoren):
+                    multiplikator = st.session_state.multiplikatoren[platz - 1]
                 gewinn = int(einsatz * multiplikator)
                 sp["einsaetze"].append(einsatz)
                 sp["plaetze"].append(platz)
