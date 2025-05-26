@@ -1,4 +1,4 @@
-# spiel_app.py – Streamlit Spielverwaltung mit korrigierter Rundenlogik
+# spiel_app.py – Bearbeitbare Runden auch nach Start neuer Runden
 import streamlit as st
 import pandas as pd
 import uuid
@@ -41,11 +41,13 @@ else:
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}, "saved": False})
 
-    gespeicherte_runden = []
+    # Reset Punkte temporär
+    for sp in st.session_state.spieler:
+        sp["einsaetze"] = []
+        sp["plaetze"] = []
+        sp["gewinne"] = []
 
-    for echte_index in range(len(st.session_state.runden)):
-        runde = st.session_state.runden[echte_index]
-
+    for echte_index, runde in enumerate(st.session_state.runden):
         with st.expander(f"{runde['name']}", expanded=(echte_index == len(st.session_state.runden)-1)):
             runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
 
@@ -63,18 +65,20 @@ else:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-            if not runde.get("saved") and st.button(f"Runde {echte_index+1} speichern", key=f"save_{echte_index}"):
-                for sp in st.session_state.spieler:
-                    einsatz = runde["einsaetze"].get(sp["name"], 0)
-                    platz = runde["plaetze"].get(sp["name"], 1)
-                    multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
-                    gewinn = int(einsatz * multiplikator)
-                    sp["einsaetze"].append(einsatz)
-                    sp["plaetze"].append(platz)
-                    sp["gewinne"].append(gewinn)
+            if st.button(f"Runde {echte_index+1} speichern", key=f"save_{echte_index}"):
                 runde["saved"] = True
 
-    # Punktestand berechnen
+    # Punkte neu berechnen
+    for runde in st.session_state.runden:
+        for sp in st.session_state.spieler:
+            einsatz = runde["einsaetze"].get(sp["name"], 0)
+            platz = runde["plaetze"].get(sp["name"], 1)
+            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
+            gewinn = int(einsatz * multiplikator)
+            sp["einsaetze"].append(einsatz)
+            sp["plaetze"].append(platz)
+            sp["gewinne"].append(gewinn)
+
     for sp in st.session_state.spieler:
         sp["punkte"] = 20 + sum(g - e for g, e in zip(sp["gewinne"], sp["einsaetze"]))
 
@@ -90,4 +94,3 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
-    
