@@ -77,7 +77,7 @@ else:
             sp["gewinne"].append(gewinn)
 
     for sp in st.session_state.spieler:
-        sp["punkte"] = 20 + sum(g - e for g, e in zip(sp["gewinne"], sp["einsaetze"]))
+        sp["punkte"] = 20 + sum(g for g in zip(sp["gewinne"]))
 
     # TABELLE
     st.header("Spielstand")
