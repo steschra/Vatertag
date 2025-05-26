@@ -1,4 +1,4 @@
-# spiel_app.py – Bearbeitbare Runden auch nach Start neuer Runden
+# spiel_app.py – Bearbeitbare Runden ohne Speicher-Button
 import streamlit as st
 import pandas as pd
 import uuid
@@ -32,16 +32,16 @@ if not st.session_state.spiel_started:
         ]
         st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
         st.session_state.spiel_started = True
-        st.rerun()
+        st.experimental_rerun()
 
 # SPIEL LOGIK
 else:
     st.header("Rundenverwaltung")
 
     if st.button("Neue Runde starten"):
-        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}, "saved": False})
+        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}})
 
-    # Reset Punkte temporär
+    # Punkte temporär zurücksetzen
     for sp in st.session_state.spieler:
         sp["einsaetze"] = []
         sp["plaetze"] = []
@@ -64,9 +64,6 @@ else:
                 platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
-
-            if st.button(f"Runde {echte_index+1} speichern", key=f"save_{echte_index}"):
-                runde["saved"] = True
 
     # Punkte neu berechnen
     for runde in st.session_state.runden:
