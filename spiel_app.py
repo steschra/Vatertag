@@ -5,6 +5,7 @@ import uuid
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
+# Session-Initialisierung
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 if "spieler" not in st.session_state:
@@ -15,7 +16,10 @@ if "runden" not in st.session_state:
     st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
+if "runde_aktualisiert" not in st.session_state:
+    st.session_state.runde_aktualisiert = False
 
+# Spiel Setup
 if not st.session_state.spiel_started:
     st.header("Spiel Setup")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
@@ -31,6 +35,7 @@ if not st.session_state.spiel_started:
         st.session_state.runde_aktualisiert = False
         st.experimental_rerun()
 
+# Spiel läuft
 else:
     st.header("Rundenverwaltung")
 
@@ -38,10 +43,7 @@ else:
         st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}, "saved": False})
         st.session_state.runde_aktualisiert = False
 
-    # Flag, ob Tabelle neu berechnet wird
-    if "runde_aktualisiert" not in st.session_state:
-        st.session_state.runde_aktualisiert = False
-
+    # Eingaben für jede Runde
     for idx, runde in enumerate(st.session_state.runden):
         with st.expander(f"{runde['name']}", expanded=(idx == len(st.session_state.runden) - 1)):
             runde["name"] = st.text_input(f"Name der Runde {idx+1}", value=runde["name"], key=f"name_{idx}")
@@ -64,7 +66,7 @@ else:
                 runde["saved"] = True
                 st.session_state.runde_aktualisiert = True
 
-    # Tabelle nur aktualisieren wenn gespeichert wurde
+    # Punkte und Tabelle nur aktualisieren, wenn gespeichert wurde
     if st.session_state.runde_aktualisiert:
         for sp in st.session_state.spieler:
             sp["einsaetze"] = []
@@ -84,6 +86,9 @@ else:
         for sp in st.session_state.spieler:
             sp["punkte"] = 20 + sum(g - e for g, e in zip(sp["gewinne"], sp["einsaetze"]))
 
+        st.session_state.runde_aktualisiert = False  # Reset Flag
+
+    # Anzeige Spielstand Tabelle
     st.header("Spielstand")
 
     daten = []
@@ -96,3 +101,4 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
+    
