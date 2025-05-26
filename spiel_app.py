@@ -93,22 +93,3 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
-
-
-Hier ist dein sauberes Streamlit-Beispiel als Datei spiel_app.py. Du kannst es so starten:
-
-streamlit run spiel_app.py
-
-Diese Version:
-
-Unterstützt mehrere Runden in zwei Schritten (Einsatz, dann Platzierung)
-
-Berechnet automatisch den Punktestand
-
-Zeigt alle Runden und Spielergebnisse an
-
-Funktioniert für mehrere Nutzer (wenn auf Server/Cloud gehostet)
-
-
-Sag Bescheid, wenn du CSV-Export, Login, oder ein hübscheres Design möchtest!
-
