@@ -5,16 +5,12 @@ import json
 import pandas as pd
 import uuid
 
-# Firebase initialisieren
-if "firebase_initialized" not in st.session_state:
-    try:
-        cred = credentials.Certificate(json.loads(st.secrets["firebase_service_account"]))
-        firebase_admin.initialize_app(cred)
-        st.session_state.firebase_initialized = True
-    except Exception as e:
-        st.error(f"Firebase-Fehler: {e}")
-        st.stop()
+# Nur initialisieren, wenn noch keine App existiert
+if not firebase_admin._apps:
+    cred = credentials.Certificate(st.secrets["firebase_service_account"])
+    firebase_admin.initialize_app(cred)
 
+# Firestore-Client erstellen
 db = firestore.client()
 
 # Streamlit UI
