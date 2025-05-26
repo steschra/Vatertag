@@ -1,22 +1,19 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Spielverwaltung (editierbare Runden)", layout="wide")
-st.title("Spielverwaltung mit editierbaren, eingeklappten Runden")
+st.set_page_config(page_title="Spielverwaltung", layout="wide")
+st.title("Spielverwaltung mit editierbaren Runden")
 
+# Initialisierung Session State
 if "spieler" not in st.session_state:
     st.session_state.spieler = []
 if "multiplikatoren" not in st.session_state:
     st.session_state.multiplikatoren = []
 if "runden" not in st.session_state:
+    # Liste von dicts: {name:str, einsaetze: dict Spieler->int, plaetze: dict Spieler->int}
     st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
-if "runde_aktualisiert" not in st.session_state:
-    st.session_state.runde_aktualisiert = False
-if "expander_states" not in st.session_state:
-    # Dict Runde index -> bool (aufgeklappt)
-    st.session_state.expander_states = {}
 
 # --- Spiel Setup ---
 if not st.session_state.spiel_started:
@@ -26,101 +23,93 @@ if not st.session_state.spiel_started:
 
     spiel_starten = st.button("Spiel starten")
     if spiel_starten:
-        if spieler_input.strip() and multiplikator_input.strip():
-            st.session_state.spieler = [
-                {"name": name.strip(), "punkte": 20, "einsaetze": [], "plaetze": [], "gewinne": []}
-                for name in spieler_input.strip().split("\n") if name.strip()
-            ]
-            st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
+        spieler = [n.strip() for n in spieler_input.strip().split("\n") if n.strip()]
+        try:
+            multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
+        except:
+            st.error("Multiplikatoren bitte als Komma-getrennte Zahlen eingeben (z.B. 3,2,1)")
+            multiplikatoren = []
+        if spieler and multiplikatoren:
+            st.session_state.spieler = spieler
+            st.session_state.multiplikatoren = multiplikatoren
             st.session_state.spiel_started = True
-            st.session_state.runde_aktualisiert = False
+            # Direkt erste Runde anlegen
+            st.session_state.runden = [{
+                "name": "Runde 1",
+                "einsaetze": {sp: 0 for sp in spieler},
+                "plaetze": {sp: 1 for sp in spieler},
+            }]
         else:
-            st.warning("Bitte Spieler und Multiplikatoren eingeben.")
+            st.warning("Bitte gültige Spieler- und Multiplikatoreneingaben machen.")
 
 # --- Spiel läuft ---
 else:
     st.header("Rundenverwaltung")
 
     if st.button("Neue Runde starten"):
+        neue_num = len(st.session_state.runden) + 1
         st.session_state.runden.append({
-            "name": f"Runde {len(st.session_state.runden)+1}",
-            "einsaetze": {},
-            "plaetze": {},
-            "saved": False
+            "name": f"Runde {neue_num}",
+            "einsaetze": {sp: 0 for sp in st.session_state.spieler},
+            "plaetze": {sp: 1 for sp in st.session_state.spieler},
         })
-        st.session_state.runde_aktualisiert = False
-        # Neue Runde standardmäßig aufgeklappt
-        st.session_state.expander_states[len(st.session_state.runden)-1] = True
 
-    # Alle Runden - immer editierbar
+    # Runden editieren (Rundennamen, Einsätze, Plätze)
     for idx, runde in enumerate(st.session_state.runden):
-        # Expander-Zustand aus session_state oder default False (zugeklappt)
-        expanded = st.session_state.expander_states.get(idx, False)
+        with st.expander(f"{runde['name']} (Runde {idx+1})", expanded=True):
+            # Name editierbar
+            neuer_name = st.text_input(f"Name Runde {idx+1}", value=runde["name"], key=f"rundename_{idx}")
+            st.session_state.runden[idx]["name"] = neuer_name
 
-        with st.expander(f"{runde['name']} {'(gespeichert)' if runde['saved'] else '(nicht gespeichert)'}", expanded=expanded):
-            # Merken: wenn der Expander geöffnet ist, speichern wir das
-            st.session_state.expander_states[idx] = True
-
-            neue_name = st.text_input(f"Name der Runde {idx+1}", value=runde["name"], key=f"rundenname_{idx}")
-            runde["name"] = neue_name
-
-            st.subheader("Einsätze")
+            st.subheader("Einsätze pro Spieler")
             for sp in st.session_state.spieler:
-                einsatz = st.number_input(f"{sp['name']} Einsatz (Runde {idx+1})",
-                                         min_value=0, step=1,
-                                         value=runde["einsaetze"].get(sp["name"], 0),
-                                         key=f"einsatz_{idx}_{sp['name']}")
-                runde["einsaetze"][sp["name"]] = einsatz
+                einsatz = st.number_input(f"{sp} Einsatz (Runde {idx+1})", min_value=0, step=1,
+                                         value=runde["einsaetze"].get(sp, 0), key=f"einsatz_{idx}_{sp}")
+                st.session_state.runden[idx]["einsaetze"][sp] = einsatz
 
-            st.subheader("Plätze")
+            st.subheader("Platzierung pro Spieler")
             for sp in st.session_state.spieler:
-                platz = st.number_input(f"{sp['name']} Platz (Runde {idx+1})",
-                                        min_value=1, step=1,
-                                        value=runde["plaetze"].get(sp["name"], 1),
-                                        key=f"platz_{idx}_{sp['name']}")
-                runde["plaetze"][sp["name"]] = platz
+                platz = st.number_input(f"{sp} Platz (Runde {idx+1})", min_value=1, step=1,
+                                        value=runde["plaetze"].get(sp, 1), key=f"platz_{idx}_{sp}")
+                st.session_state.runden[idx]["plaetze"][sp] = platz
 
-            if st.button(f"Runde {idx+1} speichern", key=f"save_runde_{idx}"):
-                runde["saved"] = True
-                st.session_state.runde_aktualisiert = True
-                # Nach Speichern Expander schließen
-                st.session_state.expander_states[idx] = False
-                st.experimental_rerun()  # Neu laden, damit sich der Expander schließt
-
-    # Punkte neu berechnen nur wenn gespeichert wurde
-    if st.session_state.runde_aktualisiert:
-        for sp in st.session_state.spieler:
-            sp["einsaetze"] = []
-            sp["plaetze"] = []
-            sp["gewinne"] = []
-
+    # Punkte berechnen
+    spieler_data = []
+    for sp in st.session_state.spieler:
+        punkte = 20
+        einsaetze_list = []
+        plaetze_list = []
+        gewinne_list = []
         for runde in st.session_state.runden:
-            for sp in st.session_state.spieler:
-                einsatz = runde["einsaetze"].get(sp["name"], 0)
-                platz = runde["plaetze"].get(sp["name"], 1)
-                multiplikator = 0
-                if 0 < platz <= len(st.session_state.multiplikatoren):
-                    multiplikator = st.session_state.multiplikatoren[platz - 1]
-                gewinn = int(einsatz * multiplikator)
-                sp["einsaetze"].append(einsatz)
-                sp["plaetze"].append(platz)
-                sp["gewinne"].append(gewinn)
+            einsatz = runde["einsaetze"].get(sp, 0)
+            platz = runde["plaetze"].get(sp, 1)
+            multiplikator = 0
+            if 0 < platz <= len(st.session_state.multiplikatoren):
+                multiplikator = st.session_state.multiplikatoren[platz - 1]
+            gewinn = int(einsatz * multiplikator)
+            punkte += gewinn - einsatz
+            einsaetze_list.append(einsatz)
+            plaetze_list.append(platz)
+            gewinne_list.append(gewinn)
+        spieler_data.append({
+            "Spieler": sp,
+            "Punkte": punkte,
+            "Einsaetze": einsaetze_list,
+            "Plaetze": plaetze_list,
+            "Gewinne": gewinne_list,
+        })
 
-        for sp in st.session_state.spieler:
-            sp["punkte"] = 20 + sum(g - e for g, e in zip(sp["gewinne"], sp["einsaetze"]))
-
-        st.session_state.runde_aktualisiert = False
-
-    # Spielstand Tabelle (sortiert Punkte absteigend)
-    st.header("Spielstand")
+    # Tabelle anzeigen mit letzten 3 Runden (umgekehrte Reihenfolge)
+    st.header("Spielstand (letzte 3 Runden)")
     daten = []
-    for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
-        zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        # Letzte 3 Runden in umgekehrter Reihenfolge anzeigen
-        for i in range(len(st.session_state.runden) - 1, max(-1, len(st.session_state.runden) - 4), -1):
-            if i < len(sp["einsaetze"]):
-                zeile[f"Runde {i+1}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
+    letzte_runden = st.session_state.runden[-3:] if len(st.session_state.runden) >= 3 else st.session_state.runden
+    runden_indices = range(len(st.session_state.runden) - len(letzte_runden), len(st.session_state.runden))
+    for sp in sorted(spieler_data, key=lambda x: -x["Punkte"]):
+        zeile = {"Spieler": sp["Spieler"], "Punkte": sp["Punkte"]}
+        for i, r_idx in enumerate(runden_indices):
+            zeile[f"{st.session_state.runden[r_idx]['name']}"] = (
+                f"E: {sp['Einsaetze'][r_idx]} | P: {sp['Plaetze'][r_idx]} | +{sp['Gewinne'][r_idx]}"
+            )
         daten.append(zeile)
-
-    df = pd.DataFrame(daten)
+    df = pd.DataFrame(daten).fillna("")
     st.dataframe(df, use_container_width=True)
