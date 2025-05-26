@@ -7,7 +7,7 @@ import uuid
 
 # Nur initialisieren, wenn noch keine App existiert
 if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase_service_account"])
+    cred = credentials.Certificate(json.loads(st.secrets["firebase_service_account"]))
     firebase_admin.initialize_app(cred)
 
 # Firestore-Client erstellen
