@@ -13,7 +13,7 @@ def get_firestore_client():
         firebase_admin.initialize_app(cred)
 
     # Firestore-Client zurückgeben
-    return firestore.client()
+    db = firestore.client()
 
 # Streamlit UI
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
