@@ -18,8 +18,6 @@ if "runden" not in st.session_state:
     st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
-if "runde_phase" not in st.session_state:
-    st.session_state.runde_phase = "einsatz"  # oder "platz"
 
 # SPIEL STARTEN
 if not st.session_state.spiel_started:
@@ -41,8 +39,7 @@ else:
     st.header("Rundenverwaltung")
 
     if st.button("Neue Runde starten"):
-        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}, "fertig": False})
-        st.session_state.runde_phase = "einsatz"
+        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}})
 
     for runden_index, runde in enumerate(st.session_state.runden[::-1]):
         echte_index = len(st.session_state.runden) - 1 - runden_index
@@ -50,43 +47,26 @@ else:
         with st.expander(f"{runde['name']}", expanded=(runden_index == 0)):
             runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
 
-            if not runde["fertig"]:
-                if st.session_state.runde_phase == "einsatz":
-                    st.subheader("Einsatz eingeben")
-                    for sp in st.session_state.spieler:
-                        key = f"einsatz_{echte_index}_{sp['name']}"
-                        runde["einsaetze"][sp["name"]] = st.number_input(f"{sp['name']}: Einsatz", min_value=0, value=runde["einsaetze"].get(sp["name"], 0), step=1, key=key)
+            st.subheader("Einsatz und Platzierung eingeben oder bearbeiten")
+            for sp in st.session_state.spieler:
+                einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
+                platz_key = f"platz_{echte_index}_{sp['name']}"
+                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, value=runde["einsaetze"].get(sp["name"], 0), step=1, key=einsatz_key)
+                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, value=runde["plaetze"].get(sp["name"], 1), step=1, key=platz_key)
+                runde["einsaetze"][sp["name"]] = einsatz
+                runde["plaetze"][sp["name"]] = platz
 
-                    if st.button(f"Einsatz speichern und Platzierung eingeben - Runde {echte_index+1}", key=f"weiter_{echte_index}"):
-                        st.session_state.runde_phase = "platz"
-                        st.rerun()
+                multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
+                gewinn = int(einsatz * multiplikator)
 
-                elif st.session_state.runde_phase == "platz":
-                    st.subheader("Platzierungen eingeben")
-                    for sp in st.session_state.spieler:
-                        key = f"platz_{echte_index}_{sp['name']}"
-                        runde["plaetze"][sp["name"]] = st.number_input(f"{sp['name']}: Platz", min_value=1, value=runde["plaetze"].get(sp["name"], 1), step=1, key=key)
-
-                    if st.button(f"Platzierung speichern - Runde {echte_index+1}", key=f"speichern_{echte_index}"):
-                        # Berechnung
-                        for sp in st.session_state.spieler:
-                            einsatz = int(runde["einsaetze"].get(sp["name"], 0))
-                            platz = int(runde["plaetze"].get(sp["name"], 1))
-                            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
-                            gewinn = int(einsatz * multiplikator)
-
-                            if len(sp["einsaetze"]) <= echte_index:
-                                sp["einsaetze"].append(einsatz)
-                                sp["plaetze"].append(platz)
-                                sp["gewinne"].append(gewinn)
-                            else:
-                                sp["einsaetze"][echte_index] = einsatz
-                                sp["plaetze"][echte_index] = platz
-                                sp["gewinne"][echte_index] = gewinn
-
-                        runde["fertig"] = True
-                        st.session_state.runde_phase = "einsatz"
-                        st.rerun()
+                if len(sp["einsaetze"]) <= echte_index:
+                    sp["einsaetze"].append(einsatz)
+                    sp["plaetze"].append(platz)
+                    sp["gewinne"].append(gewinn)
+                else:
+                    sp["einsaetze"][echte_index] = einsatz
+                    sp["plaetze"][echte_index] = platz
+                    sp["gewinne"][echte_index] = gewinn
 
     # Punktestand berechnen
     for sp in st.session_state.spieler:
@@ -104,4 +84,3 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
-    
