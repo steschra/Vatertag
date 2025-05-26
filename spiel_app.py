@@ -3,11 +3,19 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 
-# Firebase initialisieren (nur einmal)
-if not firebase_admin._apps:
-    cred = credentials.Certificate(json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]))
-    firebase_admin.initialize_app(cred)
+# Firebase initialisieren
+if "firebase_initialized" not in st.session_state:
+    try:
+        cred_dict = json.loads(st.secrets["firebase_service_account"])
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        st.session_state.firebase_initialized = True
+        st.success("Firebase verbunden!")
+    except Exception as e:
+        st.error(f"Fehler bei der Firebase-Verbindung: {e}")
+        st.stop()
 
+# Firestore-Client
 db = firestore.client()
 
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
