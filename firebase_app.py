@@ -3,26 +3,36 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 
-st.title("Firebase Firestore Verbindungs-Test (aus st.secrets)")
-
-def init_firebase():
-    if not firebase_admin._apps:
-        # JSON String aus st.secrets laden und in dict parsen
-        service_account_info = json.loads(st.secrets["firebase_service_account"])
-        cred = credentials.Certificate(service_account_info)
+# Firebase initialisieren
+if "firebase_initialized" not in st.session_state:
+    try:
+        cred_dict = json.loads(st.secrets["firebase_service_account"])
+        cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
-    return firestore.client()
+        st.session_state.firebase_initialized = True
+        st.success("Firebase verbunden!")
+    except Exception as e:
+        st.error(f"Fehler bei der Firebase-Verbindung: {e}")
+        st.stop()
 
-try:
-    db = init_firebase()
-    st.success("Firebase initialisiert.")
+# Firestore-Client
+db = firestore.client()
 
-    # Test: Mindestens ein Dokument aus der Collection 'spiele' holen
-    docs = list(db.collection("spiele").limit(1).stream())
-    if docs:
-        for doc in docs:
-            st.write(f"Dokument gefunden: ID={doc.id}, Daten={doc.to_dict()}")
+# Test-Daten schreiben
+st.subheader("Firestore Test")
+
+if st.button("Test-Dokument schreiben"):
+    doc_ref = db.collection("tests").document("streamlit_test")
+    doc_ref.set({
+        "text": "Hallo Firestore!",
+        "zahl": 123,
+    })
+    st.success("Dokument gespeichert.")
+
+# Test-Daten lesen
+if st.button("Test-Dokument lesen"):
+    doc = db.collection("tests").document("streamlit_test").get()
+    if doc.exists:
+        st.json(doc.to_dict())
     else:
-        st.warning("Verbindung OK, aber keine Dokumente in der Collection 'spiele' gefunden.")
-except Exception as e:
-    st.error(f"Fehler bei der Firebase-Verbindung: {e}")
+        st.warning("Dokument nicht gefunden.")
