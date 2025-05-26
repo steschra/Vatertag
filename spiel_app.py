@@ -1,99 +1,116 @@
 import streamlit as st
-import pandas as pd
-import uuid
+import json
+import firebase_admin
+from firebase_admin import credentials, firestore
+from urllib.parse import parse_qs
 
-# Seiteneinstellungen
-st.set_page_config(page_title="Spielverwaltung", layout="wide")
-st.title("Mehrnutzerfähige Spielverwaltung")
+# Firebase initialisieren
+if not firebase_admin._apps:
+    cred = credentials.Certificate(json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]))
+    firebase_admin.initialize_app(cred)
 
-# Initialisierung der Session-Variablen
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
-if "spieler" not in st.session_state:
-    st.session_state.spieler = []
-if "multiplikatoren" not in st.session_state:
-    st.session_state.multiplikatoren = []
-if "runden" not in st.session_state:
-    st.session_state.runden = []
-if "spiel_started" not in st.session_state:
-    st.session_state.spiel_started = False
+db = firestore.client()
 
-# SPIEL STARTEN
-if not st.session_state.spiel_started:
+# Spiel-ID aus URL oder Eingabe
+params = st.query_params.to_dict()
+spiel_id = params.get("spiel") or st.text_input("Spielname eingeben:", value="mein-spiel")
+if not spiel_id:
+    st.stop()
+
+spiel_ref = db.collection("spiele").document(spiel_id)
+doc = spiel_ref.get()
+if not doc.exists:
+    spiel_data = {
+        "spieler": [],
+        "runden": [],
+        "multiplikatoren": [3, 2, 1]
+    }
+    spiel_ref.set(spiel_data)
+else:
+    spiel_data = doc.to_dict()
+
+spieler = spiel_data["spieler"]
+runden = spiel_data["runden"]
+multiplikatoren = spiel_data.get("multiplikatoren", [3, 2, 1])
+
+st.title(f"Spiel: {spiel_id}")
+
+# Setup-Bereich (nur wenn noch keine Spieler vorhanden)
+if not spieler:
     st.header("Spiel Setup")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
-
     if st.button("Spiel starten"):
-        st.session_state.spieler = [
-            {"name": name.strip(), "punkte": 20, "einsaetze": [], "plaetze": [], "gewinne": []}
-            for name in spieler_input.strip().split("\n") if name.strip()
-        ]
-        st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
-        st.session_state.spiel_started = True
-        st.rerun()
+        neue_spieler = [name.strip() for name in spieler_input.split("\n") if name.strip()]
+        multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
+        spiel_data.update({
+            "spieler": [{"name": name, "punkte": 20} for name in neue_spieler],
+            "multiplikatoren": multiplikatoren
+        })
+        spiel_ref.set(spiel_data)
+        st.experimental_rerun()
+    st.stop()
 
-# SPIEL LOGIK
-else:
-    st.header("Rundenverwaltung")
+# Neue Runde erstellen
+st.subheader("Neue Runde starten")
+runde_name = st.text_input("Rundenname eingeben")
+if st.button("Neue Runde anlegen") and runde_name:
+    neue_runde = {
+        "name": runde_name,
+        "einsaetze": {sp["name"]: 0 for sp in spieler},
+        "plaetze": {sp["name"]: 1 for sp in spieler}
+    }
+    runden.append(neue_runde)
+    spiel_data["runden"] = runden
+    spiel_ref.update({"runden": runden})
+    st.experimental_rerun()
 
-    st.button("Neue Runde starten", on_click=lambda: st.session_state.runden.append({
-        "name": f"Runde {len(st.session_state.runden)+1}",
-        "einsaetze": {},
-        "plaetze": {}
-    }))
+# Runden anzeigen und bearbeiten
+st.header("Runden bearbeiten")
+aktualisiert = False
+for r_idx in range(len(runden)-1, -1, -1):
+    runde = runden[r_idx]
+    with st.expander(f"{runde['name']}", expanded=(r_idx == len(runden)-1)):
+        new_name = st.text_input(f"Rundenname", value=runde["name"], key=f"runde_name_{r_idx}")
+        if new_name != runde["name"]:
+            runde["name"] = new_name
+            aktualisiert = True
 
-    # Reset Punktelisten
-    for sp in st.session_state.spieler:
-        sp["einsaetze"] = []
-        sp["plaetze"] = []
-        sp["gewinne"] = []
+        for sp in spieler:
+            name = sp["name"]
+            runde["einsaetze"][name] = st.number_input(
+                f"{name} Einsatz", min_value=0, step=1,
+                value=runde["einsaetze"].get(name, 0), key=f"einsatz_{r_idx}_{name}"
+            )
+            runde["plaetze"][name] = st.number_input(
+                f"{name} Platz", min_value=1, step=1,
+                value=runde["plaetze"].get(name, 1), key=f"platz_{r_idx}_{name}"
+            )
+        if st.button("Speichern", key=f"save_runde_{r_idx}"):
+            spiel_ref.update({"runden": runden})
+            st.experimental_rerun()
 
-    for echte_index, runde in enumerate(st.session_state.runden):
-        with st.expander(f"Runde {echte_index+1}", expanded=(echte_index == len(st.session_state.runden) - 1)):
-            # Rundenname editierbar innerhalb des Expanders
-            neuer_name = st.text_input("Rundenname", value=runde["name"], key=f"rundenname_{echte_index}")
-            runde["name"] = neuer_name
-            st.markdown(f"**Aktueller Rundenname:** {runde['name']}")
+# Punkte berechnen
+for sp in spieler:
+    sp["punkte"] = 20
+    for runde in runden:
+        einsatz = runde["einsaetze"].get(sp["name"], 0)
+        platz = runde["plaetze"].get(sp["name"], 1)
+        multiplikator = multiplikatoren[platz - 1] if platz - 1 < len(multiplikatoren) else 0
+        gewinn = int(einsatz * multiplikator)
+        sp["punkte"] += gewinn
 
-            st.subheader("Einsätze eingeben")
-            for sp in st.session_state.spieler:
-                einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
-                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, step=1,
-                                          value=runde["einsaetze"].get(sp["name"], 0), key=einsatz_key)
-                runde["einsaetze"][sp["name"]] = einsatz
+spiel_data["spieler"] = spieler
+spiel_ref.update({"spieler": spieler})
 
-            st.subheader("Platzierungen eingeben")
-            for sp in st.session_state.spieler:
-                platz_key = f"platz_{echte_index}_{sp['name']}"
-                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
-                                        value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
-                runde["plaetze"][sp["name"]] = platz
+# Tabelle anzeigen
+st.header("Spielstand")
+data = []
+for sp in sorted(spieler, key=lambda x: -x["punkte"]):
+    zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
+    for i in range(len(runden)-1, -1, -1):
+        r = runden[i]
+        zeile[r["name"]] = f"E: {r['einsaetze'][sp['name']]} | P: {r['plaetze'][sp['name']]}"
+    data.append(zeile)
 
-    # Punkte berechnen
-    for runde in st.session_state.runden:
-        for sp in st.session_state.spieler:
-            einsatz = runde["einsaetze"].get(sp["name"], 0)
-            platz = runde["plaetze"].get(sp["name"], 1)
-            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
-            gewinn = int(einsatz * multiplikator)
-            sp["einsaetze"].append(einsatz)
-            sp["plaetze"].append(platz)
-            sp["gewinne"].append(gewinn)
-
-    for sp in st.session_state.spieler:
-        sp["punkte"] = 20 + sum(sp["gewinne"])
-
-    # TABELLE
-    st.header("Spielstand")
-    daten = []
-    for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
-        zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        for i in range(len(st.session_state.runden)-1, -1, -1):
-            if i < len(sp["einsaetze"]):
-                rname = st.session_state.runden[i]["name"]
-                zeile[rname] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
-        daten.append(zeile)
-
-    df = pd.DataFrame(daten)
-    st.dataframe(df, use_container_width=True)
+st.dataframe(data, use_container_width=True)
