@@ -1,4 +1,4 @@
-# spiel_app.py – Streamlit Spielverwaltung für mehrere Nutzer mit Rundeneingabe in logischer Reihenfolge und Rundenspeicherung
+# spiel_app.py – Streamlit Spielverwaltung mit korrigierter Rundenlogik
 import streamlit as st
 import pandas as pd
 import uuid
@@ -18,8 +18,6 @@ if "runden" not in st.session_state:
     st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
-if "runde_inputs" not in st.session_state:
-    st.session_state.runde_inputs = {}
 
 # SPIEL STARTEN
 if not st.session_state.spiel_started:
@@ -41,46 +39,40 @@ else:
     st.header("Rundenverwaltung")
 
     if st.button("Neue Runde starten"):
-        neue_runde_id = len(st.session_state.runden)
-        st.session_state.runde_inputs[neue_runde_id] = {"name": f"Runde {neue_runde_id+1}", "einsaetze": {}, "plaetze": {}}
+        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}, "saved": False})
 
     gespeicherte_runden = []
 
-    for echte_index in range(len(st.session_state.runde_inputs)):
-        inputs = st.session_state.runde_inputs[echte_index]
-        with st.expander(f"{inputs['name']}", expanded=(echte_index == len(st.session_state.runde_inputs)-1)):
-            inputs["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=inputs["name"], key=f"name_{echte_index}")
+    for echte_index in range(len(st.session_state.runden)):
+        runde = st.session_state.runden[echte_index]
+
+        with st.expander(f"{runde['name']}", expanded=(echte_index == len(st.session_state.runden)-1)):
+            runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
 
             st.subheader("Einsätze eingeben")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
                 einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, step=1,
-                                          value=inputs["einsaetze"].get(sp["name"], 0), key=einsatz_key)
-                inputs["einsaetze"][sp["name"]] = einsatz
+                                          value=runde["einsaetze"].get(sp["name"], 0), key=einsatz_key)
+                runde["einsaetze"][sp["name"]] = einsatz
 
             st.subheader("Platzierungen eingeben")
             for sp in st.session_state.spieler:
                 platz_key = f"platz_{echte_index}_{sp['name']}"
                 platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
-                                        value=inputs["plaetze"].get(sp["name"], 1), key=platz_key)
-                inputs["plaetze"][sp["name"]] = platz
+                                        value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
+                runde["plaetze"][sp["name"]] = platz
 
-            if st.button(f"Runde {echte_index+1} speichern", key=f"save_{echte_index}"):
-                st.session_state.runden.append(inputs)
+            if not runde.get("saved") and st.button(f"Runde {echte_index+1} speichern", key=f"save_{echte_index}"):
                 for sp in st.session_state.spieler:
-                    einsatz = inputs["einsaetze"].get(sp["name"], 0)
-                    platz = inputs["plaetze"].get(sp["name"], 1)
+                    einsatz = runde["einsaetze"].get(sp["name"], 0)
+                    platz = runde["plaetze"].get(sp["name"], 1)
                     multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
                     gewinn = int(einsatz * multiplikator)
                     sp["einsaetze"].append(einsatz)
                     sp["plaetze"].append(platz)
                     sp["gewinne"].append(gewinn)
-                gespeicherte_runden.append(echte_index)
-
-    # Nach dem Speichern die Eingaben löschen
-    for idx in gespeicherte_runden:
-        if idx in st.session_state.runde_inputs:
-            del st.session_state.runde_inputs[idx]
+                runde["saved"] = True
 
     # Punktestand berechnen
     for sp in st.session_state.spieler:
@@ -98,3 +90,4 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
+    
