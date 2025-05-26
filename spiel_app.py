@@ -5,13 +5,15 @@ import json
 import pandas as pd
 import uuid
 
-# Nur initialisieren, wenn noch keine App existiert
-if not firebase_admin._apps:
-    cred = credentials.Certificate(json.loads(st.secrets["firebase_service_account"]))
-    firebase_admin.initialize_app(cred)
+def get_firestore_client():
+    # Prüfen, ob eine Firebase-App bereits initialisiert wurde
+    if not firebase_admin._apps:
+        # Aus st.secrets laden (secrets.toml oder Streamlit Cloud)
+        cred = credentials.Certificate(st.secrets["firebase_service_account"])
+        firebase_admin.initialize_app(cred)
 
-# Firestore-Client erstellen
-db = firestore.client()
+    # Firestore-Client zurückgeben
+    return firestore.client()
 
 # Streamlit UI
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
