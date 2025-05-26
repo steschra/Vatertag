@@ -1,4 +1,4 @@
-# spiel_app.py – Bearbeitbare Runden, nur Gewinn zählt zu Punkten
+# spiel_app.py – Mehrbenutzerfähige Spielverwaltung mit editierbaren Runden
 import streamlit as st
 import pandas as pd
 import uuid
@@ -7,7 +7,7 @@ import uuid
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
-# Initialisierung der Session-Variablen
+# Session-Initialisierung
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 if "spieler" not in st.session_state:
@@ -34,23 +34,29 @@ if not st.session_state.spiel_started:
         st.session_state.spiel_started = True
         st.rerun()
 
-# SPIEL LOGIK
+# SPIEL VERWALTUNG
 else:
     st.header("Rundenverwaltung")
 
-    if st.button("Neue Runde starten"):
-        st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}})
+    st.button("Neue Runde starten", on_click=lambda: st.session_state.runden.append({
+        "name": f"Runde {len(st.session_state.runden) + 1}",
+        "einsaetze": {}, "plaetze": {}
+    }))
 
-    # Reset Gewinne
+    # Zurücksetzen der Daten für Berechnung
     for sp in st.session_state.spieler:
         sp["einsaetze"] = []
         sp["plaetze"] = []
         sp["gewinne"] = []
 
-    for echte_index, runde in enumerate(st.session_state.runden):
-        with st.expander(f"{runde['name']}", expanded=(echte_index == len(st.session_state.runden)-1)):
-            runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
+    # Runden anzeigen (umgekehrte Reihenfolge)
+    for echte_index in reversed(range(len(st.session_state.runden))):
+        runde = st.session_state.runden[echte_index]
 
+        rundenname_key = f"name_{echte_index}"
+        runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=rundenname_key)
+
+        with st.expander(runde["name"], expanded=(echte_index == len(st.session_state.runden) - 1)):
             st.subheader("Einsätze eingeben")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
@@ -65,7 +71,7 @@ else:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Gewinne berechnen
+    # Punkte berechnen (nur Gewinne addieren zu Startpunkten)
     for runde in st.session_state.runden:
         for sp in st.session_state.spieler:
             einsatz = runde["einsaetze"].get(sp["name"], 0)
@@ -76,18 +82,18 @@ else:
             sp["plaetze"].append(platz)
             sp["gewinne"].append(gewinn)
 
-    # Punkte berechnen: Nur Gewinne zählen
     for sp in st.session_state.spieler:
         sp["punkte"] = 20 + sum(sp["gewinne"])
 
-    # Tabelle anzeigen
+    # TABELLE
     st.header("Spielstand")
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
         for i in range(len(st.session_state.runden)-1, -1, -1):
             if i < len(sp["einsaetze"]):
-                zeile[f"R{i+1}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
+                rundenname = st.session_state.runden[i]["name"]
+                zeile[rundenname] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
