@@ -1,4 +1,4 @@
-# spiel_app.py – Bearbeitbare Runden ohne Speicher-Button
+# spiel_app.py – Bearbeitbare Runden, nur Gewinn zählt zu Punkten
 import streamlit as st
 import pandas as pd
 import uuid
@@ -32,7 +32,7 @@ if not st.session_state.spiel_started:
         ]
         st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
         st.session_state.spiel_started = True
-        st.experimental_rerun()
+        st.rerun()
 
 # SPIEL LOGIK
 else:
@@ -41,7 +41,7 @@ else:
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({"name": f"Runde {len(st.session_state.runden)+1}", "einsaetze": {}, "plaetze": {}})
 
-    # Punkte temporär zurücksetzen
+    # Reset Gewinne
     for sp in st.session_state.spieler:
         sp["einsaetze"] = []
         sp["plaetze"] = []
@@ -65,7 +65,7 @@ else:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Punkte neu berechnen
+    # Gewinne berechnen
     for runde in st.session_state.runden:
         for sp in st.session_state.spieler:
             einsatz = runde["einsaetze"].get(sp["name"], 0)
@@ -76,10 +76,11 @@ else:
             sp["plaetze"].append(platz)
             sp["gewinne"].append(gewinn)
 
+    # Punkte berechnen: Nur Gewinne zählen
     for sp in st.session_state.spieler:
-        sp["punkte"] = 20 + sum(g for g in zip(sp["gewinne"]))
+        sp["punkte"] = 20 + sum(sp["gewinne"])
 
-    # TABELLE
+    # Tabelle anzeigen
     st.header("Spielstand")
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
