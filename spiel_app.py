@@ -10,10 +10,11 @@ if "spieler" not in st.session_state:
 if "multiplikatoren" not in st.session_state:
     st.session_state.multiplikatoren = []
 if "runden" not in st.session_state:
-    # Liste von dicts: {name:str, einsaetze: dict Spieler->int, plaetze: dict Spieler->int}
     st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
+if "expander_states" not in st.session_state:
+    st.session_state.expander_states = {}
 
 # --- Spiel Setup ---
 if not st.session_state.spiel_started:
@@ -33,7 +34,6 @@ if not st.session_state.spiel_started:
             st.session_state.spieler = spieler
             st.session_state.multiplikatoren = multiplikatoren
             st.session_state.spiel_started = True
-            # Direkt erste Runde anlegen
             st.session_state.runden = [{
                 "name": "Runde 1",
                 "einsaetze": {sp: 0 for sp in spieler},
@@ -46,18 +46,11 @@ if not st.session_state.spiel_started:
 else:
     st.header("Rundenverwaltung")
 
-    if st.button("Neue Runde starten"):
-        neue_num = len(st.session_state.runden) + 1
-        st.session_state.runden.append({
-            "name": f"Runde {neue_num}",
-            "einsaetze": {sp: 0 for sp in st.session_state.spieler},
-            "plaetze": {sp: 1 for sp in st.session_state.spieler},
-        })
-
-    # Runden editieren (Rundennamen, Einsätze, Plätze)
+    # Runden-Editieren
     for idx, runde in enumerate(st.session_state.runden):
-        with st.expander(f"{runde['name']} (Runde {idx+1})", expanded=True):
-            # Name editierbar
+        # Nur die letzte Runde aufgeklappt, andere zugeklappt
+        expanded = (idx == len(st.session_state.runden) - 1)
+        with st.expander(f"{runde['name']} (Runde {idx+1})", expanded=expanded):
             neuer_name = st.text_input(f"Name Runde {idx+1}", value=runde["name"], key=f"rundename_{idx}")
             st.session_state.runden[idx]["name"] = neuer_name
 
@@ -72,6 +65,15 @@ else:
                 platz = st.number_input(f"{sp} Platz (Runde {idx+1})", min_value=1, step=1,
                                         value=runde["plaetze"].get(sp, 1), key=f"platz_{idx}_{sp}")
                 st.session_state.runden[idx]["plaetze"][sp] = platz
+
+    # Button Neue Runde
+    if st.button("Neue Runde starten"):
+        neue_num = len(st.session_state.runden) + 1
+        st.session_state.runden.append({
+            "name": f"Runde {neue_num}",
+            "einsaetze": {sp: 0 for sp in st.session_state.spieler},
+            "plaetze": {sp: 1 for sp in st.session_state.spieler},
+        })
 
     # Punkte berechnen
     spieler_data = []
@@ -99,11 +101,17 @@ else:
             "Gewinne": gewinne_list,
         })
 
-    # Tabelle anzeigen mit letzten 3 Runden (umgekehrte Reihenfolge)
+    # Tabelle anzeigen mit letzten 3 Runden, umgekehrt (neueste zuerst)
     st.header("Spielstand (letzte 3 Runden)")
-    daten = []
+
+    # Letzte 3 Runden umgekehrt
     letzte_runden = st.session_state.runden[-3:] if len(st.session_state.runden) >= 3 else st.session_state.runden
+    letzte_runden = list(reversed(letzte_runden))
     runden_indices = range(len(st.session_state.runden) - len(letzte_runden), len(st.session_state.runden))
+    runden_indices = list(runden_indices)[-3:]
+    runden_indices.reverse()
+
+    daten = []
     for sp in sorted(spieler_data, key=lambda x: -x["Punkte"]):
         zeile = {"Spieler": sp["Spieler"], "Punkte": sp["Punkte"]}
         for i, r_idx in enumerate(runden_indices):
@@ -111,5 +119,6 @@ else:
                 f"E: {sp['Einsaetze'][r_idx]} | P: {sp['Plaetze'][r_idx]} | +{sp['Gewinne'][r_idx]}"
             )
         daten.append(zeile)
+
     df = pd.DataFrame(daten).fillna("")
     st.dataframe(df, use_container_width=True)
