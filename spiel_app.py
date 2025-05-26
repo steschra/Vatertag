@@ -5,7 +5,7 @@ import uuid
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
-# Session-Initialisierung
+# Session-Variablen initialisieren
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 if "spieler" not in st.session_state:
@@ -23,17 +23,20 @@ if "runde_aktualisiert" not in st.session_state:
 if not st.session_state.spiel_started:
     st.header("Spiel Setup")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
-    multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
+    multiplikator_input = st.text_input("Multiplikatoren pro Platz (z.B. 3,2,1):")
 
-    if st.button("Spiel starten"):
-        st.session_state.spieler = [
-            {"name": name.strip(), "punkte": 20, "einsaetze": [], "plaetze": [], "gewinne": []}
-            for name in spieler_input.strip().split("\n") if name.strip()
-        ]
-        st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
-        st.session_state.spiel_started = True
-        st.session_state.runde_aktualisiert = False
-        st.experimental_rerun()
+    spiel_starten = st.button("Spiel starten")
+    if spiel_starten:
+        if spieler_input.strip() and multiplikator_input.strip():
+            st.session_state.spieler = [
+                {"name": name.strip(), "punkte": 20, "einsaetze": [], "plaetze": [], "gewinne": []}
+                for name in spieler_input.strip().split("\n") if name.strip()
+            ]
+            st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
+            st.session_state.spiel_started = True
+            st.session_state.runde_aktualisiert = False
+        else:
+            st.warning("Bitte Spieler und Multiplikatoren eingeben.")
 
 # Spiel läuft
 else:
@@ -86,7 +89,7 @@ else:
         for sp in st.session_state.spieler:
             sp["punkte"] = 20 + sum(g - e for g, e in zip(sp["gewinne"], sp["einsaetze"]))
 
-        st.session_state.runde_aktualisiert = False  # Reset Flag
+        st.session_state.runde_aktualisiert = False  # Flag zurücksetzen
 
     # Anzeige Spielstand Tabelle
     st.header("Spielstand")
@@ -101,4 +104,3 @@ else:
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
-    
