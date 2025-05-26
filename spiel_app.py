@@ -49,14 +49,16 @@ else:
         sp["plaetze"] = []
         sp["gewinne"] = []
 
-    # Runden anzeigen (umgekehrte Reihenfolge)
+    # Runden anzeigen (neueste zuerst)
     for echte_index in reversed(range(len(st.session_state.runden))):
         runde = st.session_state.runden[echte_index]
 
-        rundenname_key = f"name_{echte_index}"
-        runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=rundenname_key)
-
         with st.expander(runde["name"], expanded=(echte_index == len(st.session_state.runden) - 1)):
+            rundenname_key = f"name_{echte_index}"
+            neuer_name = st.text_input(f"Rundenname", value=runde["name"], key=rundenname_key)
+            if neuer_name != runde["name"]:
+                runde["name"] = neuer_name
+
             st.subheader("Einsätze eingeben")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
@@ -71,7 +73,7 @@ else:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Punkte berechnen (nur Gewinne addieren zu Startpunkten)
+    # Punkte berechnen
     for runde in st.session_state.runden:
         for sp in st.session_state.spieler:
             einsatz = runde["einsaetze"].get(sp["name"], 0)
@@ -90,7 +92,7 @@ else:
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        for i in range(len(st.session_state.runden)-1, -1, -1):
+        for i in range(len(st.session_state.runden) - 1, -1, -1):
             if i < len(sp["einsaetze"]):
                 rundenname = st.session_state.runden[i]["name"]
                 zeile[rundenname] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
