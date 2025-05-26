@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-import uuid
 
 st.set_page_config(page_title="Spielverwaltung (editierbare Runden)", layout="wide")
 st.title("Spielverwaltung mit editierbaren, eingeklappten Runden")
 
+# Initialisierung Session State
 if "spieler" not in st.session_state:
     st.session_state.spieler = []
 if "multiplikatoren" not in st.session_state:
@@ -16,7 +16,7 @@ if "spiel_started" not in st.session_state:
 if "runde_aktualisiert" not in st.session_state:
     st.session_state.runde_aktualisiert = False
 
-# --- Spiel Setup (nur wenn nicht gestartet) ---
+# --- Spiel Setup ---
 if not st.session_state.spiel_started:
     st.header("Spiel Setup")
     spieler_input = st.text_area("Spielernamen (je eine pro Zeile):")
@@ -48,7 +48,7 @@ else:
         })
         st.session_state.runde_aktualisiert = False
 
-    # Alle Runden anzeigen, auch alte, alle mit Inputs (eingeklappt)
+    # Alle Runden anzeigen (eingeklappt), Eingabefelder editierbar
     for idx, runde in enumerate(st.session_state.runden):
         with st.expander(f"{runde['name']} {'(gespeichert)' if runde['saved'] else '(nicht gespeichert)'}", expanded=False):
             # Runde Name editierbar
@@ -75,7 +75,7 @@ else:
                 runde["saved"] = True
                 st.session_state.runde_aktualisiert = True
 
-    # Nur beim Speichern Punkte neu berechnen
+    # Punkte neu berechnen nur wenn gespeichert wurde
     if st.session_state.runde_aktualisiert:
         for sp in st.session_state.spieler:
             sp["einsaetze"] = []
@@ -97,15 +97,15 @@ else:
 
         st.session_state.runde_aktualisiert = False
 
-    # Spielstand Tabelle (sortiert absteigend)
+    # Spielstand Tabelle (sortiert Punkte absteigend)
     st.header("Spielstand")
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        # Letzte 3 Runden anzeigen in umgekehrter Reihenfolge
+        # Letzte 3 Runden in umgekehrter Reihenfolge anzeigen
         for i in range(len(st.session_state.runden) - 1, max(-1, len(st.session_state.runden) - 4), -1):
             if i < len(sp["einsaetze"]):
-                zeile[f"R{i+1}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
+                zeile[f"Runde {i+1}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
