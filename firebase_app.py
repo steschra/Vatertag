@@ -1,15 +1,15 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+import json
 
-st.title("Firebase Firestore Verbindungs-Test")
-
-# Pfad zum Service-Account JSON anpassen
-SERVICE_ACCOUNT_PATH = "pfad/zur/deiner/serviceAccountKey.json"
+st.title("Firebase Firestore Verbindungs-Test (aus st.secrets)")
 
 def init_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+        # JSON String aus st.secrets laden und in dict parsen
+        service_account_info = json.loads(st.secrets["firebase_service_account"])
+        cred = credentials.Certificate(service_account_info)
         firebase_admin.initialize_app(cred)
     return firestore.client()
 
