@@ -1,4 +1,4 @@
-# spiel_app.py – Streamlit Spielverwaltung für mehrere Nutzer
+# spiel_app.py – Streamlit Spielverwaltung für mehrere Nutzer mit Rundeneingabe in logischer Reihenfolge
 import streamlit as st
 import pandas as pd
 import uuid
@@ -45,17 +45,22 @@ else:
         echte_index = len(st.session_state.runden) - 1 - runden_index
 
         with st.expander(f"{runde['name']}", expanded=(runden_index == 0)):
+            # Name der Runde
             runde["name"] = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
 
-            st.subheader("Einsatz und Platzierung eingeben oder bearbeiten")
+            st.subheader("Einsätze eingeben oder bearbeiten")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
-                platz_key = f"platz_{echte_index}_{sp['name']}"
                 einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, value=runde["einsaetze"].get(sp["name"], 0), step=1, key=einsatz_key)
-                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, value=runde["plaetze"].get(sp["name"], 1), step=1, key=platz_key)
                 runde["einsaetze"][sp["name"]] = einsatz
+
+            st.subheader("Platzierungen eingeben oder bearbeiten")
+            for sp in st.session_state.spieler:
+                platz_key = f"platz_{echte_index}_{sp['name']}"
+                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, value=runde["plaetze"].get(sp["name"], 1), step=1, key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
+                einsatz = runde["einsaetze"].get(sp["name"], 0)
                 multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
                 gewinn = int(einsatz * multiplikator)
 
