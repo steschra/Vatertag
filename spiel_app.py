@@ -2,12 +2,9 @@ import streamlit as st
 import pandas as pd
 import uuid
 
-st.set_page_config(page_title="Spielverwaltung (optimiert)", layout="wide")
-st.title("Spielverwaltung mit fokussierter Rundeneingabe")
+st.set_page_config(page_title="Spielverwaltung (editierbare Runden)", layout="wide")
+st.title("Spielverwaltung mit editierbaren, eingeklappten Runden")
 
-# Session-Variablen initialisieren
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
 if "spieler" not in st.session_state:
     st.session_state.spieler = []
 if "multiplikatoren" not in st.session_state:
@@ -19,7 +16,7 @@ if "spiel_started" not in st.session_state:
 if "runde_aktualisiert" not in st.session_state:
     st.session_state.runde_aktualisiert = False
 
-# Spiel Setup
+# --- Spiel Setup (nur wenn nicht gestartet) ---
 if not st.session_state.spiel_started:
     st.header("Spiel Setup")
     spieler_input = st.text_area("Spielernamen (je eine pro Zeile):")
@@ -38,6 +35,7 @@ if not st.session_state.spiel_started:
         else:
             st.warning("Bitte Spieler und Multiplikatoren eingeben.")
 
+# --- Spiel läuft ---
 else:
     st.header("Rundenverwaltung")
 
@@ -50,47 +48,31 @@ else:
         })
         st.session_state.runde_aktualisiert = False
 
-    # Zeige alle älteren Runden eingeklappt und nicht editierbar
-    for idx, runde in enumerate(st.session_state.runden[:-1]):
-        with st.expander(f"{runde['name']} (gespeichert)" if runde["saved"] else f"{runde['name']} (nicht gespeichert)", expanded=False):
-            # Nur Anzeige, keine Eingabefelder
-            table_data = []
+    # Alle Runden anzeigen, auch alte, alle mit Inputs (eingeklappt)
+    for idx, runde in enumerate(st.session_state.runden):
+        with st.expander(f"{runde['name']} {'(gespeichert)' if runde['saved'] else '(nicht gespeichert)'}", expanded=False):
+            # Runde Name editierbar
+            neue_name = st.text_input(f"Name der Runde {idx+1}", value=runde["name"], key=f"rundenname_{idx}")
+            runde["name"] = neue_name
+
+            st.subheader("Einsätze")
             for sp in st.session_state.spieler:
-                einsatz = runde["einsaetze"].get(sp["name"], 0)
-                platz = runde["plaetze"].get(sp["name"], 0)
-                multiplikator = st.session_state.multiplikatoren[platz-1] if 0 < platz <= len(st.session_state.multiplikatoren) else 0
-                gewinn = int(einsatz * multiplikator)
-                table_data.append({
-                    "Spieler": sp["name"],
-                    "Einsatz": einsatz,
-                    "Platz": platz,
-                    "Gewinn": gewinn
-                })
-            df = pd.DataFrame(table_data)
-            st.table(df)
+                einsatz = st.number_input(f"{sp['name']} Einsatz (Runde {idx+1})",
+                                         min_value=0, step=1,
+                                         value=runde["einsaetze"].get(sp["name"], 0),
+                                         key=f"einsatz_{idx}_{sp['name']}")
+                runde["einsaetze"][sp["name"]] = einsatz
 
-    # Aktuelle Runde (letzte) editierbar zeigen
-    if st.session_state.runden:
-        aktuelle_runde = st.session_state.runden[-1]
-        with st.expander(f"{aktuelle_runde['name']} (aktuell)", expanded=True):
-            aktuelle_runde["name"] = st.text_input("Name der Runde", value=aktuelle_runde["name"], key="aktuelle_runde_name")
-
-            st.subheader("Einsätze eingeben")
+            st.subheader("Plätze")
             for sp in st.session_state.spieler:
-                einsatz_key = f"einsatz_aktuell_{sp['name']}"
-                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, step=1,
-                                          value=aktuelle_runde["einsaetze"].get(sp["name"], 0), key=einsatz_key)
-                aktuelle_runde["einsaetze"][sp["name"]] = einsatz
+                platz = st.number_input(f"{sp['name']} Platz (Runde {idx+1})",
+                                        min_value=1, step=1,
+                                        value=runde["plaetze"].get(sp["name"], 1),
+                                        key=f"platz_{idx}_{sp['name']}")
+                runde["plaetze"][sp["name"]] = platz
 
-            st.subheader("Platzierungen eingeben")
-            for sp in st.session_state.spieler:
-                platz_key = f"platz_aktuell_{sp['name']}"
-                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
-                                        value=aktuelle_runde["plaetze"].get(sp["name"], 1), key=platz_key)
-                aktuelle_runde["plaetze"][sp["name"]] = platz
-
-            if st.button("Runde speichern"):
-                aktuelle_runde["saved"] = True
+            if st.button(f"Runde {idx+1} speichern", key=f"save_runde_{idx}"):
+                runde["saved"] = True
                 st.session_state.runde_aktualisiert = True
 
     # Nur beim Speichern Punkte neu berechnen
@@ -115,14 +97,13 @@ else:
 
         st.session_state.runde_aktualisiert = False
 
-    # Anzeige Spielstand Tabelle (sortiert absteigend nach Punkte)
+    # Spielstand Tabelle (sortiert absteigend)
     st.header("Spielstand")
-
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        # Nur letzte 3 Runden anzeigen
-        for i in range(len(st.session_state.runden)-1, max(-1, len(st.session_state.runden)-4), -1):
+        # Letzte 3 Runden anzeigen in umgekehrter Reihenfolge
+        for i in range(len(st.session_state.runden) - 1, max(-1, len(st.session_state.runden) - 4), -1):
             if i < len(sp["einsaetze"]):
                 zeile[f"R{i+1}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
         daten.append(zeile)
