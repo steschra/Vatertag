@@ -88,11 +88,11 @@ if st.session_state.spiel_started and not st.session_state.spieler:
         st.success("Spiel gespeichert.")
         st.rerun()
 
-# SPIELVERWALTUNG
+# RUNDENVERWALTUNG
 if st.session_state.spiel_started and st.session_state.spieler:
     
     st.header("Rundenverwaltung")
-    st.text(f"Spiel: {st.session_state.spielname} {st.session_state.multiplikatoren}")
+    st.text(f"Spiel: {st.session_state.spielname} - Multiplikator {st.session_state.multiplikatoren}")
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
