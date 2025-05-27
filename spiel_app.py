@@ -43,7 +43,7 @@ if not st.session_state.spiel_started:
     else:
         spielname = auswahl
 
-    col1, col2, col3 = st.columns([1,1,12])
+    col1, col2, col3 = st.columns([0.5,0.5,12])
     with col1:
         buttonLaden = st.button("Spiel laden / starten")
     with col2:
