@@ -142,11 +142,11 @@ if st.session_state.spiel_started and st.session_state.spieler:
     st.header("Spielstand")
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
-        zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
+        zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"],1)}
         for i in range(len(st.session_state.runden) - 1, -1, -1):
             runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
-                zeile[runde["name"]] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
+                zeile[runde["name"]] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{round(sp['gewinne'][i],1)}"
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
