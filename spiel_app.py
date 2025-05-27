@@ -9,7 +9,8 @@ def get_firestore_client():
     # Prüfen, ob eine Firebase-App bereits initialisiert wurde
     if not firebase_admin._apps:
         # Aus st.secrets laden (secrets.toml oder Streamlit Cloud)
-        cred = credentials.Certificate(st.secrets["firebase_service_account"])
+        cred_dict = json.loads(st.secrets["firebase_service_account"])
+        cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
 
     # Firestore-Client zurückgeben
