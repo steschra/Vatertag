@@ -22,9 +22,6 @@ db = get_firestore_client()
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
-# Spielname eingeben
-spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
-
 # Initialisierung der Session-Variablen
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -37,13 +34,12 @@ if "runden" not in st.session_state:
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
 
-
 # Vorhandene Spiele aus Firestore abrufen
 spiel_dokumente = db.collection("spiele").stream()
 spielnamen = [doc.id for doc in spiel_dokumente]
 
 # Ladeoption, nur wenn noch kein Spiel gestartet wurde
-if not st.session_state.spiel_started and spielnamen:
+if not st.session_state.spiel_started
     st.subheader("Vorhandenes Spiel laden")
     spiel_zum_laden = st.selectbox("Wähle ein Spiel aus", options=spielnamen)
     if st.button("Spiel laden"):
@@ -62,9 +58,11 @@ if not st.session_state.spiel_started and spielnamen:
         except Exception as e:
             st.error(f"Fehler beim Laden: {e}")
 
-# SPIEL STARTEN
+# Spielname eingeben
+spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
+
 if not st.session_state.spiel_started:
-    st.header("Spiel Setup")
+    st.subheader("Neues Spiel Setup")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
 
