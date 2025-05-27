@@ -73,7 +73,7 @@ if not st.session_state.spiel_started:
             if st.button("Ja, endgültig löschen"):
                 spiel_doc = db.collection("spiele").document(spielname).get()
                 if spiel_doc.exists:
-                    spiel_doc.delete()
+                    db.collection("spiele").document(spielname).delete()
                     st.success(f"Spiel **{spielname}** wurde gelöscht.")
                 else:
                     st.error("Spiel nicht gefunden.")
