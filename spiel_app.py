@@ -75,7 +75,6 @@ if not st.session_state.spiel_started:
                 if spiel_doc.exists:
                     spiel_doc.delete()
                     st.success(f"Spiel **{spielname}** wurde gelöscht.")
-                    st.rerun()
                 else:
                     st.error("Spiel nicht gefunden.")
                     st.stop()
