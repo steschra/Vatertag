@@ -172,12 +172,30 @@ if st.session_state.spiel_started and st.session_state.spieler:
     # Spielstand
     st.header("Spielstand")
     daten = []
+    # Spieler mit Bonus pro Runde ermitteln
+    bonus_empfaenger_pro_runde = []
+    punkte_zwischen_runden = [ {sp["name"]: 20.0} for sp in st.session_state.spieler ]  # Startpunkte
+
+    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
+    for runde in st.session_state.runden:
+        bonus_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
+        bonus_empfaenger_pro_runde.append(bonus_spieler)
+        for sp in st.session_state.spieler:
+            idx = len(punkte_zwischen_runden[0])
+            zwischenpunkte[sp["name"]] += sp["gewinne"][len(bonus_empfaenger_pro_runde)-1]
+
+    # Anzeige
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"],1)}
         for i in range(len(st.session_state.runden) - 1, -1, -1):
             runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
-                zeile[runde["name"]] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{round(sp['gewinne'][i],1)}"
+                bonus_symbol = "*" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
+                zeile[runde["name"]] = (
+                    f"E: {int(sp['einsaetze'][i])} | "
+                    f"P: {sp['plaetze'][i]} | "
+                    f"+{round(sp['gewinne'][i],1)}{bonus_symbol}"
+                )
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
