@@ -150,8 +150,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
         if runde_idx == 0:
             bonus_empfaenger_pro_runde.append(None)
         else:
-            min_punkte = min(zwischenpunkte, key=zwischenpunkte.get)
-            letzter_spieler = [name for name, p in punkte.items() if p == min_punkte]
+            letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
             bonus_empfaenger_pro_runde.append(letzter_spieler)
 
         # Berechne Gewinne
@@ -162,7 +161,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
             gewinn = einsatz * multiplikator
-            if name in bonus_empfaenger_pro_runde[runde_idx] and multiplikator < 0:
+            if bonus_empfaenger_pro_runde[runde_idx] == name and multiplikator < 0:
                 gewinn = 0  # Bonus für den letzten
 
             sp["einsaetze"].append(einsatz)
