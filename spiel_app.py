@@ -12,8 +12,10 @@ def get_firestore_client():
         cred = credentials.Certificate(st.secrets["firebase_service_account"])
         firebase_admin.initialize_app(cred)
 
-# Firestore-Client zurückgeben
-db = firestore.client()
+    # Firestore-Client zurückgeben
+    return firestore.client()
+
+db = get_firestore_client()
 
 # Streamlit UI
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
