@@ -153,7 +153,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
 
 
     # AUTOMATISCHES SPEICHERN
-    if spielname:
+    if "spielname" in st.session_state:
         try:
             spiel_daten = {
                 "spieler": st.session_state.spieler,
