@@ -125,16 +125,18 @@ if st.session_state.spiel_started and st.session_state.spieler:
             st.subheader("Einsätze")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{i}_{sp['name']}"
-                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=1, max_value=3, step=1,
-                                          value=runde["einsaetze"].get(sp["name"], 1), key=einsatz_key)
-                runde["einsaetze"][sp["name"]] = einsatz
+                    if einsatz_key not in st.session_state:
+                        st.session_state[einsatz_key] = runde["einsaetze"].get(sp["name"], 1)
+                    st.number_input(f"{sp['name']}: Einsatz", min_value=1, max_value=3, step=1, key=einsatz_key)
+                    runde["einsaetze"][sp["name"]] = st.session_state[einsatz_key]
 
             st.subheader("Platzierungen")
             for sp in st.session_state.spieler:
                 platz_key = f"platz_{i}_{sp['name']}"
-                platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
-                                        value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
-                runde["plaetze"][sp["name"]] = platz
+                if platz_key not in st.session_state:
+                    st.session_state[platz_key] = runde["plaetze"].get(sp["name"], 1)
+                st.number_input(f"{sp['name']}: Platz", min_value=1, step=1, key=platz_key)
+                runde["plaetze"][sp["name"]] = st.session_state[platz_key]
 
     ## Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
     zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
