@@ -136,34 +136,46 @@ if st.session_state.spiel_started and st.session_state.spieler:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Berechnung mit doppelten Punkten pro Runde für jeweils den Letzten
+    ## Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
+    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
+    bonus_empfaenger_pro_runde = []
+
+    # Leere die Einträge
     for sp in st.session_state.spieler:
         sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
-        sp["punkte"] = 20.0  # Startwert
 
-    for i, runde in enumerate(st.session_state.runden):
-        # Punkte vor dieser Runde berechnen
-        punkte_vor_runde = {sp["name"]: sp["punkte"] for sp in st.session_state.spieler}
-        letzter_spieler = min(punkte_vor_runde, key=punkte_vor_runde.get)
+    # Berechnung pro Runde
+    for runde_idx, runde in enumerate(st.session_state.runden):
+        # Bestimme Bonus-Empfänger (ab Runde 2)
+        if runde_idx == 0:
+            bonus_empfaenger_pro_runde.append(None)
+        else:
+            letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
+            bonus_empfaenger_pro_runde.append(letzter_spieler)
 
+        # Berechne Gewinne
         for sp in st.session_state.spieler:
-            einsatz = runde["einsaetze"].get(sp["name"], 0)
-            platz = runde["plaetze"].get(sp["name"], 1)
+            name = sp["name"]
+            einsatz = runde["einsaetze"].get(name, 0)
+            platz = runde["plaetze"].get(name, 1)
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
-            if sp["name"] == letzter_spieler:
-                multiplikator *= 2
+            gewinn = einsatz * multiplikator
+            if bonus_empfaenger_pro_runde[runde_idx] == name:
+                gewinn *= 2  # Bonus für den letzten
 
-            gewinn = float(einsatz * multiplikator)
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
-            sp["gewinne"].append(gewinn)
-            sp["punkte"] += gewinn
+            sp["gewinne"].append(float(gewinn))
 
-    # Rundung
+        # Update Zwischenpunkte für nächste Runde
+        for sp in st.session_state.spieler:
+            zwischenpunkte[sp["name"]] += sp["gewinne"][-1]
+
+    # Aktualisiere Gesamtpunkte
     for sp in st.session_state.spieler:
-        sp["punkte"] = round(sp["punkte"], 2)
-   
+        sp["punkte"] = 20.0 + sum(sp["gewinne"])
+    
     # Spielstand
     st.header("Spielstand")
     daten = []
