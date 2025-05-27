@@ -43,37 +43,35 @@ if not st.session_state.spiel_started:
     else:
         spielname = auswahl
         
-    col1, col2 = st.columns([1,1])
-    with col1:
-        if st.button("Spiel laden / starten") and spielname:
-            st.session_state.spielname = spielname
+    if st.button("Spiel laden / starten") and spielname:
+        st.session_state.spielname = spielname
 
-            if auswahl != "Neues Spiel erstellen":
-                # Vorhandenes Spiel laden
-                spiel_doc = db.collection("spiele").document(spielname).get()
-                if spiel_doc.exists:
-                    daten = spiel_doc.to_dict()
-                    st.session_state.spieler = daten["spieler"]
-                    st.session_state.multiplikatoren = daten["multiplikatoren"]
-                    st.session_state.runden = daten["runden"]
-                else:
-                    st.error("Spiel nicht gefunden.")
-                    st.stop()
+        if auswahl != "Neues Spiel erstellen":
+            # Vorhandenes Spiel laden
+            spiel_doc = db.collection("spiele").document(spielname).get()
+            if spiel_doc.exists:
+                daten = spiel_doc.to_dict()
+                st.session_state.spieler = daten["spieler"]
+                st.session_state.multiplikatoren = daten["multiplikatoren"]
+                st.session_state.runden = daten["runden"]
             else:
-                st.session_state.spieler = []
-                st.session_state.multiplikatoren = []
-                st.session_state.runden = []
-
-            st.session_state.spiel_started = True
-            st.rerun()
-    with col2:
-        if st.button("Spiel löschen") and spielname:
-            st.warning(f"Möchtest du das Spiel **{spielname}** wirklich löschen?")
-            if st.button("Ja, endgültig löschen") and spielname:
-                st.session_state.spielname = spielname
-                db.collection("spiele").document(spielname).delete()
-                st.error("Spiel gelöscht")
+                st.error("Spiel nicht gefunden.")
                 st.stop()
+        else:
+            st.session_state.spieler = []
+            st.session_state.multiplikatoren = []
+            st.session_state.runden = []
+
+        st.session_state.spiel_started = True
+        st.rerun()
+    
+    if st.button("Spiel löschen") and spielname:
+        st.warning(f"Möchtest du das Spiel **{spielname}** wirklich löschen?")
+        if st.button("Ja, endgültig löschen") and spielname:
+            st.session_state.spielname = spielname
+            db.collection("spiele").document(spielname).delete()
+            st.error("Spiel gelöscht")
+            st.stop()
             
 # SPIEL SETUP
 if st.session_state.spiel_started and not st.session_state.spieler:
