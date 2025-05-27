@@ -91,8 +91,8 @@ if st.session_state.spiel_started and not st.session_state.spieler:
 # SPIELVERWALTUNG
 if st.session_state.spiel_started and st.session_state.spieler:
     
-    st.header(f"Aktueller Spielname: {st.session_state.spielname} - Multiplikatoren: st.session_state.multiplikatoren")
-    st.subheader("Rundenverwaltung")
+    st.header("Rundenverwaltung")
+    st.subheader(f"Aktueller Spielname: {st.session_state.spielname} - Multiplikatoren: {st.session_state.multiplikatoren}")
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
