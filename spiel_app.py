@@ -204,7 +204,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
             runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
                 bonus_symbol = "*" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
-                Vorzeichen = "+" if sp['gewinne'][i] > 0
+                vorzeichen = "+" if sp['gewinne'][i] > 0 else ""
                 zeile[runde["name"]] = (
                     f"E: {int(sp['einsaetze'][i])} | "
                     f"P: {sp['plaetze'][i]} | "
