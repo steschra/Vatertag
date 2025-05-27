@@ -43,12 +43,12 @@ if not st.session_state.spiel_started:
     else:
         spielname = auswahl
 
-    col1, col2, col3 = st.columns([0.5,0.5,12])
+    col1, col2, col3 = st.columns([1,1,1])
     with col1:
         buttonLaden = st.button("Spiel laden / starten")
-    with col2:
-        buttonLöschen = st.button('Spiel löschen')
     with col3:
+        buttonLöschen = st.button('Spiel löschen')
+    with col2:
         pass
         
     if buttonLaden and spielname:
