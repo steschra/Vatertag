@@ -60,7 +60,7 @@ if not st.session_state.spiel_started:
 
 
     st.subheader("Neues Spiel Setup")
-    spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
+    spielname_input = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
 
@@ -71,11 +71,12 @@ if not st.session_state.spiel_started:
         ]
         st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
         st.session_state.spiel_started = True
+        st.session_state.spielname = spielname_input
         st.rerun()
 
 else:
     st.header("Rundenverwaltung")
-    spielname = st.session_state.spielname
+    st.session_state.spielname
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
@@ -137,7 +138,7 @@ else:
     st.dataframe(df, use_container_width=True)
 
     # AUTOMATISCHES SPEICHERN
-    if spielname:
+    if st.session_state.spielname:
         try:
             spiel_daten = {
                 "spieler": st.session_state.spieler,
