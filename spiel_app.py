@@ -18,7 +18,7 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-# Streamlit UI
+# Seiteneinstellungen
 st.set_page_config(page_title="Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
@@ -125,4 +125,4 @@ else:
             }
             db.collection("spiele").document(spielname).set(spiel_daten)
         except Exception as e:
-            st.error(f"Fehler beim Speichern: {e}")
+            st.error(f"Fehler beim Speichern: {e}")            
