@@ -136,39 +136,34 @@ if st.session_state.spiel_started and st.session_state.spieler:
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Punkte vor aktueller Runde berechnen
-    vorherige_punkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
-    for r in st.session_state.runden[:-1]:  # alle außer der letzten Runde
-        for sp in st.session_state.spieler:
-            einsatz = r["einsaetze"].get(sp["name"], 0)
-            platz = r["plaetze"].get(sp["name"], 1)
-            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
-            vorherige_punkte[sp["name"]] += einsatz * multiplikator
-
-    # Spieler mit den wenigsten Punkten vor der letzten Runde
-    letzter_spieler = min(vorherige_punkte, key=vorherige_punkte.get) if vorherige_punkte else None
-
-    # Gesamte Berechnung mit Sonderregel für letzte Runde
+    # Berechnung mit doppelten Punkten pro Runde für jeweils den Letzten
     for sp in st.session_state.spieler:
         sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
-        punkte = 20.0
-        for i, r in enumerate(st.session_state.runden):
-            einsatz = r["einsaetze"].get(sp["name"], 0)
-            platz = r["plaetze"].get(sp["name"], 1)
+        sp["punkte"] = 20.0  # Startwert
+
+    for i, runde in enumerate(st.session_state.runden):
+        # Punkte vor dieser Runde berechnen
+        punkte_vor_runde = {sp["name"]: sp["punkte"] for sp in st.session_state.spieler}
+        letzter_spieler = min(punkte_vor_runde, key=punkte_vor_runde.get)
+
+        for sp in st.session_state.spieler:
+            einsatz = runde["einsaetze"].get(sp["name"], 0)
+            platz = runde["plaetze"].get(sp["name"], 1)
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
-            if i == len(st.session_state.runden) - 1 and sp["name"] == letzter_spieler:
-                multiplikator *= 2  # Letzter bekommt doppelte Punkte
+            if sp["name"] == letzter_spieler:
+                multiplikator *= 2
 
             gewinn = float(einsatz * multiplikator)
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
             sp["gewinne"].append(gewinn)
-            punkte += gewinn
+            sp["punkte"] += gewinn
 
-        sp["punkte"] = round(punkte, 2)
-
-    
+    # Rundung
+    for sp in st.session_state.spieler:
+        sp["punkte"] = round(sp["punkte"], 2)
+   
     # Spielstand
     st.header("Spielstand")
     daten = []
