@@ -204,7 +204,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
         for i in range(len(st.session_state.runden) - 1, -1, -1):
             runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
-                bonus_symbol = "★" if sp["name"] in bonus_empfaenger_pro_runde[i] else ""
+                bonus_symbol = "★" if bonus_empfaenger_pro_runde[i] and sp["name"] in bonus_empfaenger_pro_runde[i] else ""
                 vorzeichen = "+" if sp['gewinne'][i] > 0 else ""
                 zeile[runde["name"]] = (
                     f"E: {int(sp['einsaetze'][i])} | "
