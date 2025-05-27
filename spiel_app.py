@@ -25,6 +25,18 @@ st.title("Mehrnutzerfähige Spielverwaltung")
 # Spielname eingeben
 spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
 
+# Initialisierung der Session-Variablen
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+if "spieler" not in st.session_state:
+    st.session_state.spieler = []
+if "multiplikatoren" not in st.session_state:
+    st.session_state.multiplikatoren = []
+if "runden" not in st.session_state:
+    st.session_state.runden = []
+if "spiel_started" not in st.session_state:
+    st.session_state.spiel_started = False
+
 
 # Vorhandene Spiele aus Firestore abrufen
 spiel_dokumente = db.collection("spiele").stream()
@@ -49,18 +61,6 @@ if not st.session_state.spiel_started and spielnamen:
                 st.warning("Dokument nicht gefunden.")
         except Exception as e:
             st.error(f"Fehler beim Laden: {e}")
-
-# Initialisierung der Session-Variablen
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
-if "spieler" not in st.session_state:
-    st.session_state.spieler = []
-if "multiplikatoren" not in st.session_state:
-    st.session_state.multiplikatoren = []
-if "runden" not in st.session_state:
-    st.session_state.runden = []
-if "spiel_started" not in st.session_state:
-    st.session_state.spiel_started = False
 
 # SPIEL STARTEN
 if not st.session_state.spiel_started:
