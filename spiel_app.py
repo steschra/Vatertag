@@ -172,7 +172,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
     punkte_zwischen_runden = [ {sp["name"]: 20.0} for sp in st.session_state.spieler ]  # Startpunkte
 
     zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
-    for runde in st.session_state.runden:
+    for runde_idx, runde in enumerate(st.session_state.runden
         if runde_idx == 0:
             # In der ersten Runde kein Bonus
             bonus_empfaenger_pro_runde.append(None)
