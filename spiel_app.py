@@ -39,7 +39,7 @@ spiel_dokumente = db.collection("spiele").stream()
 spielnamen = [doc.id for doc in spiel_dokumente]
 
 # Ladeoption, nur wenn noch kein Spiel gestartet wurde
-if not st.session_state.spiel_started
+if not st.session_state.spiel_started:
     st.subheader("Vorhandenes Spiel laden")
     spiel_zum_laden = st.selectbox("Wähle ein Spiel aus", options=spielnamen)
     if st.button("Spiel laden"):
@@ -58,10 +58,9 @@ if not st.session_state.spiel_started
         except Exception as e:
             st.error(f"Fehler beim Laden: {e}")
 
-# Spielname eingeben
-spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
-
-if not st.session_state.spiel_started:
+    # Spielname eingeben
+    spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
+    
     st.subheader("Neues Spiel Setup")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
