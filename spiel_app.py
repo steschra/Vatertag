@@ -66,14 +66,13 @@ if not st.session_state.spiel_started:
 
             st.session_state.spiel_started = True
             st.rerun()
-        
-        with col2:
-            if st.button("Spiel löschen"):
-                st.warning(f"Möchtest du das Spiel **{auswahl}** wirklich löschen?")
-                if st.button("Ja, endgültig löschen"):
-                    db.collection("spiele").document(auswahl).delete()
-                    st.success(f"Spiel **{auswahl}** wurde gelöscht.")
-                    st.experimental_rerun()
+    with col2:
+        if st.button("Spiel löschen"):
+            st.warning(f"Möchtest du das Spiel **{spielname}** wirklich löschen?")
+            if st.button("Ja, endgültig löschen"):
+                db.collection("spiele").document(spielname).delete()
+                st.success(f"Spiel **{spielname}** wurde gelöscht.")
+                st.rerun()
 
 # SPIEL SETUP
 if st.session_state.spiel_started and not st.session_state.spieler:
