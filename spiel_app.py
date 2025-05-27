@@ -148,10 +148,11 @@ if st.session_state.spiel_started and st.session_state.spieler:
     for runde_idx, runde in enumerate(st.session_state.runden):
         # Bestimme Bonus-Empfänger (ab Runde 2)
         if runde_idx == 0:
-            bonus_empfaenger_pro_runde.append(None)
+            bonus_empfaenger = []
         else:
-            letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
-            bonus_empfaenger_pro_runde.append(letzter_spieler)
+            min_punkte = min(zwischenpunkte.values())
+            bonus_empfaenger = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
+        bonus_empfaenger_pro_runde.append(bonus_empfaenger)
 
         # Berechne Gewinne
         for sp in st.session_state.spieler:
@@ -161,8 +162,8 @@ if st.session_state.spiel_started and st.session_state.spieler:
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
             gewinn = einsatz * multiplikator
-            if bonus_empfaenger_pro_runde[runde_idx] == name and multiplikator < 0:
-                gewinn = 0  # Bonus für den letzten
+            if name in bonus_empfaenger and multiplikator < 0:
+                gewinn = 0  # Bonus für alle Letzten
 
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
@@ -175,7 +176,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
     # Aktualisiere Gesamtpunkte
     for sp in st.session_state.spieler:
         sp["punkte"] = 20.0 + sum(sp["gewinne"])
-    
+
     # Spielstand
     st.header("Spielstand")
     daten = []
@@ -189,9 +190,9 @@ if st.session_state.spiel_started and st.session_state.spieler:
             # In der ersten Runde kein Bonus
             bonus_empfaenger_pro_runde.append(None)
         else:
-            # Spieler mit dem niedrigsten Punktestand vor der Runde
-            letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
-            bonus_empfaenger_pro_runde.append(letzter_spieler)
+            min_punkte = min(zwischenpunkte.values())
+            letzte_spieler = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
+            bonus_empfaenger_pro_runde.append(letzte_spieler)
 
         # Punktestand für nächste Runde aktualisieren
         for sp in st.session_state.spieler:
@@ -203,7 +204,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
         for i in range(len(st.session_state.runden) - 1, -1, -1):
             runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
-                bonus_symbol = "*" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
+                bonus_symbol = "★" if bonus_empfaenger_pro_runde[i] and sp["name"] in bonus_empfaenger_pro_runde[i] else ""
                 vorzeichen = "+" if sp['gewinne'][i] > 0 else ""
                 zeile[runde["name"]] = (
                     f"E: {int(sp['einsaetze'][i])} | "
