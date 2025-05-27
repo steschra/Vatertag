@@ -161,8 +161,8 @@ if st.session_state.spiel_started and st.session_state.spieler:
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
             gewinn = einsatz * multiplikator
-            if bonus_empfaenger_pro_runde[runde_idx] == name:
-                gewinn *= 2  # Bonus für den letzten
+            if bonus_empfaenger_pro_runde[runde_idx] == name and multiplikator < 0:
+                gewinn = 0  # Bonus für den letzten
 
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
