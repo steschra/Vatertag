@@ -153,7 +153,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
             min_punkte = min(zwischenpunkte.values())
             bonus_empfaenger = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
         bonus_empfaenger_pro_runde.append(bonus_empfaenger)
-        
+
         # Berechne Gewinne
         for sp in st.session_state.spieler:
             name = sp["name"]
@@ -162,8 +162,8 @@ if st.session_state.spiel_started and st.session_state.spieler:
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
             gewinn = einsatz * multiplikator
-            if name in bonus_empfaenger and multiplikator < 0:
-                gewinn = 0  # Bonus für den letzten
+            if name in bonus_empfaenger:
+                gewinn *= 2  # Bonus für alle Letzten
 
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
@@ -176,28 +176,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
     # Aktualisiere Gesamtpunkte
     for sp in st.session_state.spieler:
         sp["punkte"] = 20.0 + sum(sp["gewinne"])
-    
-    # Spielstand
-    st.header("Spielstand")
-    daten = []
-    # Spieler mit Bonus pro Runde ermitteln
-    bonus_empfaenger_pro_runde = []
-    punkte_zwischen_runden = [ {sp["name"]: 20.0} for sp in st.session_state.spieler ]  # Startpunkte
 
-    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
-    for runde_idx, runde in enumerate(st.session_state.runden):
-        if runde_idx == 0:
-            # In der ersten Runde kein Bonus
-            bonus_empfaenger_pro_runde.append(None)
-        else:
-            # Spieler mit dem niedrigsten Punktestand vor der Runde
-            letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
-            bonus_empfaenger_pro_runde.append(letzter_spieler)
-
-        # Punktestand für nächste Runde aktualisieren
-        for sp in st.session_state.spieler:
-            zwischenpunkte[sp["name"]] += sp["gewinne"][runde_idx]
-            
     # Anzeige
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"],1)}
