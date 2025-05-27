@@ -42,8 +42,16 @@ if not st.session_state.spiel_started:
         spielname = st.text_input("Neuer Spielname")
     else:
         spielname = auswahl
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+         buttonLaden = st.button("Spiel laden / starten")
+
+    with col2:
+         buttonLöschen = st.button('Spiel löschen')
         
-    if st.button("Spiel laden / starten") and spielname:
+    if st.buttonLaden and spielname:
         st.session_state.spielname = spielname
 
         if auswahl != "Neues Spiel erstellen":
@@ -65,13 +73,11 @@ if not st.session_state.spiel_started:
         st.session_state.spiel_started = True
         st.rerun()
     
-    if st.button("Spiel löschen") and spielname:
-        st.warning(f"Möchtest du das Spiel **{spielname}** wirklich löschen?")
-        if st.button("Ja, endgültig löschen") and spielname:
-            st.session_state.spielname = spielname
-            db.collection("spiele").document(spielname).delete()
-            st.error("Spiel gelöscht")
-            st.stop()
+    if st.buttonLöscheb and spielname:
+        st.session_state.spielname = spielname
+        db.collection("spiele").document(spielname).delete()
+        st.error("Spiel gelöscht")
+        st.stop()
             
 # SPIEL SETUP
 if st.session_state.spiel_started and not st.session_state.spieler:
