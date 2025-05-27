@@ -132,7 +132,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
             einsatz = runde["einsaetze"].get(sp["name"], 0)
             platz = runde["plaetze"].get(sp["name"], 1)
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
-            gewinn = int(einsatz * multiplikator)
+            gewinn = float(einsatz * multiplikator)
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
             sp["gewinne"].append(gewinn)
