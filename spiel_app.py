@@ -161,6 +161,6 @@ if st.session_state.spiel_started and st.session_state.spieler:
                 "runden": st.session_state.runden,
                 "zeitstempel": firestore.SERVER_TIMESTAMP
             }
-            db.collection("spiele").document(spielname).set(spiel_daten)
+            db.collection("spiele").document(st.session_state.spielname).set(spiel_daten)
         except Exception as e:
             st.error(f"Fehler beim Speichern: {e}")            
