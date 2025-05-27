@@ -25,6 +25,31 @@ st.title("Mehrnutzerfähige Spielverwaltung")
 # Spielname eingeben
 spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
 
+
+# Vorhandene Spiele aus Firestore abrufen
+spiel_dokumente = db.collection("spiele").stream()
+spielnamen = [doc.id for doc in spiel_dokumente]
+
+# Ladeoption, nur wenn noch kein Spiel gestartet wurde
+if not st.session_state.spiel_started and spielnamen:
+    st.subheader("Vorhandenes Spiel laden")
+    spiel_zum_laden = st.selectbox("Wähle ein Spiel aus", options=spielnamen)
+    if st.button("Spiel laden"):
+        try:
+            doc = db.collection("spiele").document(spiel_zum_laden).get()
+            if doc.exists:
+                daten = doc.to_dict()
+                st.session_state.spieler = daten["spieler"]
+                st.session_state.multiplikatoren = daten["multiplikatoren"]
+                st.session_state.runden = daten["runden"]
+                st.session_state.spiel_started = True
+                st.session_state.spielname = spiel_zum_laden
+                st.rerun()
+            else:
+                st.warning("Dokument nicht gefunden.")
+        except Exception as e:
+            st.error(f"Fehler beim Laden: {e}")
+
 # Initialisierung der Session-Variablen
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
