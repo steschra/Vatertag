@@ -70,7 +70,7 @@ if not st.session_state.spiel_started:
         if st.button("Spiel löschen") and spielname:
             st.session_state.spielname = spielname
             db.collection("spiele").document(spielname).delete()
-            st.error("Spiel gelöscht"))
+            st.error("Spiel gelöscht")
             st.stop()
             
 # SPIEL SETUP
