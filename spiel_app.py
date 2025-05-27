@@ -58,10 +58,9 @@ if not st.session_state.spiel_started:
         except Exception as e:
             st.error(f"Fehler beim Laden: {e}")
 
-    # Spielname eingeben
-    spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
-    
+
     st.subheader("Neues Spiel Setup")
+    spielname = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
 
@@ -76,6 +75,7 @@ if not st.session_state.spiel_started:
 
 else:
     st.header("Rundenverwaltung")
+    spielname = st.session_state.spielname
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
