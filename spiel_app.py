@@ -71,13 +71,11 @@ if not st.session_state.spiel_started:
             st.session_state.spielname = spielname
             st.warning(f"Möchtest du das Spiel **{spielname}** wirklich löschen?")
             if st.button("Ja, endgültig löschen"):
-                spiel_doc = db.collection("spiele").document(spielname).get()
-                if spiel_doc.exists:
+                try:
                     db.collection("spiele").document(spielname).delete()
-                    st.success(f"Spiel **{spielname}** wurde gelöscht.")
-                else:
-                    st.error("Spiel nicht gefunden.")
-                    st.stop()
+                    st.success(f"Spiel {spiel_zum_loeschen} gelöscht.")
+                except Exception as e:
+                    st.error(f"Fehler beim Löschen: {e}")
 
 # SPIEL SETUP
 if st.session_state.spiel_started and not st.session_state.spieler:
