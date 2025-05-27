@@ -18,65 +18,80 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-# Seiteneinstellungen
-st.set_page_config(page_title="Spielverwaltung", layout="wide")
+# Spiel laden oder neues starten
+st.set_page_config(page_title="Mehrnutzerfähige Spielverwaltung", layout="wide")
 st.title("Mehrnutzerfähige Spielverwaltung")
 
-# Initialisierung der Session-Variablen
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
-if "spieler" not in st.session_state:
-    st.session_state.spieler = []
-if "multiplikatoren" not in st.session_state:
-    st.session_state.multiplikatoren = []
-if "runden" not in st.session_state:
-    st.session_state.runden = []
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
+if "spielname" not in st.session_state:
+    st.session_state.spielname = None
 
-# Vorhandene Spiele aus Firestore abrufen
-spiel_dokumente = db.collection("spiele").stream()
-spielnamen = [doc.id for doc in spiel_dokumente]
-
-# Ladeoption, nur wenn noch kein Spiel gestartet wurde
+# SPIEL LADEN ODER STARTEN
 if not st.session_state.spiel_started:
-    st.subheader("Vorhandenes Spiel laden")
-    spiel_zum_laden = st.selectbox("Wähle ein Spiel aus", options=spielnamen)
-    if st.button("Spiel laden"):
-        try:
-            doc = db.collection("spiele").document(spiel_zum_laden).get()
-            if doc.exists:
-                daten = doc.to_dict()
+    st.subheader("Spielname eingeben oder auswählen")
+
+    # Vorhandene Spiele laden
+    spiele_docs = db.collection("spiele").stream()
+    spielnamen = sorted([doc.id for doc in spiele_docs])
+
+    optionen = ["Neues Spiel erstellen"] + spielnamen
+    auswahl = st.selectbox("Spiel auswählen", optionen)
+
+    if auswahl == "Neues Spiel erstellen":
+        spielname = st.text_input("Neuer Spielname")
+    else:
+        spielname = auswahl
+
+    if st.button("Spiel laden / starten") and spielname:
+        st.session_state.spielname = spielname
+
+        if auswahl != "Neues Spiel erstellen":
+            # Vorhandenes Spiel laden
+            spiel_doc = db.collection("spiele").document(spielname).get()
+            if spiel_doc.exists:
+                daten = spiel_doc.to_dict()
                 st.session_state.spieler = daten["spieler"]
                 st.session_state.multiplikatoren = daten["multiplikatoren"]
                 st.session_state.runden = daten["runden"]
-                st.session_state.spiel_started = True
-                st.session_state.spielname = spiel_zum_laden
-                st.rerun()
             else:
-                st.warning("Dokument nicht gefunden.")
-        except Exception as e:
-            st.error(f"Fehler beim Laden: {e}")
+                st.error("Spiel nicht gefunden.")
+                st.stop()
+        else:
+            st.session_state.spieler = []
+            st.session_state.multiplikatoren = []
+            st.session_state.runden = []
 
+        st.session_state.spiel_started = True
+        st.rerun()
 
-    st.subheader("Neues Spiel Setup")
-    spielname_input = st.text_input("Spielname eingeben (Pflicht für Speicherung)", key="spielname")
+# SPIEL SETUP
+if st.session_state.spiel_started and not st.session_state.spieler:
+    st.header("Spiel Setup")
+    st.text(f"Aktueller Spielname: {st.session_state.spielname}")
+
     spieler_input = st.text_area("Spielernamen (einer pro Zeile):")
     multiplikator_input = st.text_input("Multiplikatoren pro Platz (z. B. 3,2,1):")
 
-    if st.button("Spiel starten"):
+    if st.button("Setup speichern"):
         st.session_state.spieler = [
             {"name": name.strip(), "punkte": 20, "einsaetze": [], "plaetze": [], "gewinne": []}
             for name in spieler_input.strip().split("\n") if name.strip()
         ]
         st.session_state.multiplikatoren = [float(x.strip()) for x in multiplikator_input.split(",") if x.strip()]
-        st.session_state.spiel_started = True
-        st.session_state.spielname = spielname_input
+        st.session_state.runden = []
+        db.collection("spiele").document(st.session_state.spielname).set({
+            "spieler": st.session_state.spieler,
+            "multiplikatoren": st.session_state.multiplikatoren,
+            "runden": st.session_state.runden
+        })
+        st.success("Spiel gespeichert.")
         st.rerun()
 
-else:
+# SPIELVERWALTUNG
+if st.session_state.spiel_started and st.session_state.spieler:
     st.header("Rundenverwaltung")
-    st.session_state.spielname
+    st.text(f"Aktueller Spielname: {st.session_state.spielname}")
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
@@ -84,34 +99,35 @@ else:
             "einsaetze": {},
             "plaetze": {}
         })
+        db.collection("spiele").document(st.session_state.spielname).update({
+            "runden": st.session_state.runden
+        })
+        st.rerun()
 
-    for echte_index, runde in enumerate(st.session_state.runden):
-        with st.expander(f"{runde['name']}", expanded=(echte_index == len(st.session_state.runden)-1)):
-            neuer_name = st.text_input(f"Name der Runde {echte_index+1}", value=runde["name"], key=f"name_{echte_index}")
-            runde["name"] = neuer_name
+    for i, runde in enumerate(st.session_state.runden):
+        with st.expander(f"{runde['name']}", expanded=(i == len(st.session_state.runden) - 1)):
+            rundenname_key = f"rundenname_{i}"
+            neuer_name = st.text_input("Rundenname", value=runde["name"], key=rundenname_key)
+            st.session_state.runden[i]["name"] = neuer_name
 
-            st.subheader("Einsätze eingeben")
+            st.subheader("Einsätze")
             for sp in st.session_state.spieler:
-                einsatz_key = f"einsatz_{echte_index}_{sp['name']}"
+                einsatz_key = f"einsatz_{i}_{sp['name']}"
                 einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, step=1,
                                           value=runde["einsaetze"].get(sp["name"], 0), key=einsatz_key)
                 runde["einsaetze"][sp["name"]] = einsatz
 
-            st.subheader("Platzierungen eingeben")
+            st.subheader("Platzierungen")
             for sp in st.session_state.spieler:
-                platz_key = f"platz_{echte_index}_{sp['name']}"
+                platz_key = f"platz_{i}_{sp['name']}"
                 platz = st.number_input(f"{sp['name']}: Platz", min_value=1, step=1,
                                         value=runde["plaetze"].get(sp["name"], 1), key=platz_key)
                 runde["plaetze"][sp["name"]] = platz
 
-    # Punkte neu berechnen
+    # Berechnung
     for sp in st.session_state.spieler:
-        sp["einsaetze"] = []
-        sp["plaetze"] = []
-        sp["gewinne"] = []
-
-    for runde in st.session_state.runden:
-        for sp in st.session_state.spieler:
+        sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
+        for runde in st.session_state.runden:
             einsatz = runde["einsaetze"].get(sp["name"], 0)
             platz = runde["plaetze"].get(sp["name"], 1)
             multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
@@ -119,26 +135,25 @@ else:
             sp["einsaetze"].append(einsatz)
             sp["plaetze"].append(platz)
             sp["gewinne"].append(gewinn)
-
-    for sp in st.session_state.spieler:
         sp["punkte"] = 20 + sum(sp["gewinne"])
 
-    # TABELLE
+    # Spielstand
     st.header("Spielstand")
     daten = []
     for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
         zeile = {"Spieler": sp["name"], "Punkte": int(sp["punkte"])}
-        for i in range(len(st.session_state.runden)-1, -1, -1):
+        for i in range(len(st.session_state.runden) - 1, -1, -1):
+            runde = st.session_state.runden[i]
             if i < len(sp["einsaetze"]):
-                rname = st.session_state.runden[i]["name"]
-                zeile[f"{rname}"] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
+                zeile[runde["name"]] = f"E: {int(sp['einsaetze'][i])} | P: {sp['plaetze'][i]} | +{int(sp['gewinne'][i])}"
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
     st.dataframe(df, use_container_width=True)
 
+
     # AUTOMATISCHES SPEICHERN
-    if st.session_state.spielname:
+    if spielname:
         try:
             spiel_daten = {
                 "spieler": st.session_state.spieler,
