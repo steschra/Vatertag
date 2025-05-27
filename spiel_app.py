@@ -69,9 +69,9 @@ if not st.session_state.spiel_started:
     with col2:
         if st.button("Spiel löschen") and spielname:
             st.session_state.spielname = spielname
-            db.collection("spiele").document(spielname).get()
-            st.session_state.spiel_started = True
-            st.rerun()
+            db.collection("spiele").document(spielname).delete()
+            st.error("Spiel gelöscht"))
+            st.stop()
             
 # SPIEL SETUP
 if st.session_state.spiel_started and not st.session_state.spieler:
