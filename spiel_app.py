@@ -19,8 +19,8 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spiel laden oder neues starten
-st.set_page_config(page_title="Mehrnutzerfähige Spielverwaltung", layout="wide")
-st.title("Mehrnutzerfähige Spielverwaltung")
+st.set_page_config(page_title="Vatertagsspiele", layout="wide")
+st.title("Vatertagsspiele")
 
 if "spiel_started" not in st.session_state:
     st.session_state.spiel_started = False
@@ -90,8 +90,9 @@ if st.session_state.spiel_started and not st.session_state.spieler:
 
 # SPIELVERWALTUNG
 if st.session_state.spiel_started and st.session_state.spieler:
-    st.header("Rundenverwaltung")
-    st.text(f"Aktueller Spielname: {st.session_state.spielname}")
+    
+    st.header(f"Aktueller Spielname: {st.session_state.spielname} - Multiplikatoren: st.session_state.multiplikatoren")
+    st.subheader("Rundenverwaltung")
 
     if st.button("Neue Runde starten"):
         st.session_state.runden.append({
@@ -113,8 +114,8 @@ if st.session_state.spiel_started and st.session_state.spieler:
             st.subheader("Einsätze")
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{i}_{sp['name']}"
-                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=0, step=1,
-                                          value=runde["einsaetze"].get(sp["name"], 0), key=einsatz_key)
+                einsatz = st.number_input(f"{sp['name']}: Einsatz", min_value=1, max_value=3, step=1,
+                                          value=runde["einsaetze"].get(sp["name"], 1), key=einsatz_key)
                 runde["einsaetze"][sp["name"]] = einsatz
 
             st.subheader("Platzierungen")
