@@ -51,7 +51,7 @@ if not st.session_state.spiel_started:
     with col2:
          buttonLöschen = st.button('Spiel löschen')
         
-    if st.buttonLaden and spielname:
+    if buttonLaden and spielname:
         st.session_state.spielname = spielname
 
         if auswahl != "Neues Spiel erstellen":
@@ -73,7 +73,7 @@ if not st.session_state.spiel_started:
         st.session_state.spiel_started = True
         st.rerun()
     
-    if st.buttonLöschen and spielname:
+    if buttonLöschen and spielname:
         st.session_state.spielname = spielname
         db.collection("spiele").document(spielname).delete()
         st.error("Spiel gelöscht")
