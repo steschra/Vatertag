@@ -150,7 +150,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
         daten.append(zeile)
 
     df = pd.DataFrame(daten)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 
     # AUTOMATISCHES SPEICHERN
