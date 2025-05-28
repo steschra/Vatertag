@@ -195,13 +195,14 @@ chart = alt.Chart(df_chart).mark_line(point=True).encode(
 
 st.altair_chart(chart, use_container_width=True)
 
-# 📊 Statistiken anzeigen
+# 📊 Spielstatistiken anzeigen
 st.subheader("📌 Spielstatistiken")
 
 # 1. Häufigster Rundensieger
 rundensieger_namen = [runde["rundensieger"][0] for runde in rundendaten]
-haeufigster_rundensieger = pd.Series(rundensieger_namen).value_counts().idxmax()
-rundensieger_anzahl = pd.Series(rundensieger_namen).value_counts().max()
+rundensieger_counts = pd.Series(rundensieger_namen).value_counts()
+haeufigster_rundensieger = rundensieger_counts.idxmax()
+rundensieger_anzahl = rundensieger_counts.max()
 
 # 2. Höchster Punktestand im Spielverlauf
 df_punkte_max = pd.DataFrame(punkteverlauf)
@@ -215,17 +216,34 @@ bonus_counter = pd.Series(bonus_empfaenger_pro_runde)
 haeufigster_bonus_spieler = bonus_counter.value_counts().idxmax()
 bonus_anzahl = bonus_counter.value_counts().max()
 
-# Darstellung
-col1, col2, col3 = st.columns(3)
+# 4. Meiste Punkte in einer einzelnen Runde
+beste_runde = None
+max_gewinn = -1
+gewinner = None
+rundenname = ""
+
+for runden_index, runde in enumerate(rundendaten):
+    name, gewinn = runde["rundensieger"]
+    if gewinn > max_gewinn:
+        max_gewinn = gewinn
+        gewinner = name
+        rundenname = f"{runden_index + 1}: {runde['runde']}"
+
+# Darstellung in vier Spalten
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric("🏆 Häufigster Rundensieger", f"{haeufigster_rundensieger}", f"{rundensieger_anzahl}×")
 
 with col2:
-    st.metric("💯 Höchster Punktestand", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
+    st.metric("💯 Höchster Punktestand ever", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
 
 with col3:
-    st.metric("🎁 Häufigster Bonus-Empfänger", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
+    st.metric("🎁 Häufigster Rubber-Banding-Nutzer", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
+
+with col4:
+    st.metric("🔥 Meisten Punkte in einem Spiel", f"{gewinner}", f"+{max_gewinn:.1f} Punkte ({rundenname})")
+
 
 aktuelle_runde_index = len(runden) - 1  # Index der letzten Runde (0-basiert)
 aktuelle_runde_name = f"{len(runden)}: {runden[-1]['name']}"
