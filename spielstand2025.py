@@ -1,84 +1,25 @@
+
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 import pandas as pd
-import altair as alt
-import streamlit_autorefresh
 import uuid
 
-# Muss ganz früh kommen – noch vor allen anderen st.-Aufrufen!
-st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
-
-# Auto-Refresh alle 5 Minuten (300.000 Millisekunden)
-streamlit_autorefresh.st_autorefresh(interval=300_000, key="refresh")
-
-# 🔒 Fester Spielname – HIER ANPASSEN!
-FESTER_SPIELNAME = "Vatertagsspiele 2025"
-
-# Firebase verbinden
 def get_firestore_client():
+    # Prüfen, ob eine Firebase-App bereits initialisiert wurde
     if not firebase_admin._apps:
+        # Aus st.secrets laden (secrets.toml oder Streamlit Cloud)
         cred_dict = json.loads(st.secrets["firebase_service_account"])
         cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
+
+    # Firestore-Client zurückgeben
     return firestore.client()
 
 db = get_firestore_client()
 
-st.title("🎲 Vatertagsspiele 2025 - Spielstand (live)")
-
-# Spiel laden
-spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
-if not spiel_doc.exists:
-    st.error(f"Spiel '{FESTER_SPIELNAME}' nicht gefunden.")
-    st.stop()
-
-daten = spiel_doc.to_dict()
-spieler = daten["spieler"]
-multiplikatoren = daten["multiplikatoren"]
-runden = daten["runden"]
-
-# RUNDENVERWALTUNG
-if st.session_state.spiel_started and st.session_state.spieler:
-    
-    st.header("Rundenverwaltung")
-    st.text(f"Spielname: {st.session_state.spielname} \nMultiplikatoren: {st.session_state.multiplikatoren}")
-
-    if st.button("Neue Runde starten"):
-        st.session_state.runden.append({
-            "name": f"Runde {len(st.session_state.runden)+1}",
-            "einsaetze": {},
-            "plaetze": {}
-        })
-        db.collection("spiele").document(st.session_state.spielname).update({
-            "runden": st.session_state.runden
-        })
-        st.rerun()
-
-    for i, runde in enumerate(st.session_state.runden):
-        with st.expander(f"{runde['name']}", expanded=(i == len(st.session_state.runden) - 1)):
-            rundenname_key = f"rundenname_{i}"
-            neuer_name = st.text_input("Rundenname", value=runde["name"], key=rundenname_key)
-            st.session_state.runden[i]["name"] = neuer_name
-
-            st.subheader("Einsätze")
-            for sp in st.session_state.spieler:
-                einsatz_key = f"einsatz_{i}_{sp['name']}"
-                if einsatz_key not in st.session_state:
-                    st.session_state[einsatz_key] = runde["einsaetze"].get(sp["name"], 0)
-                st.number_input(f"{sp['name']}: Einsatz", min_value=0, max_value=3, step=1, key=einsatz_key)
-                runde["einsaetze"][sp["name"]] = st.session_state[einsatz_key]
-
-            st.subheader("Platzierungen")
-            for sp in st.session_state.spieler:
-                platz_key = f"platz_{i}_{sp['name']}"
-                if platz_key not in st.session_state:
-                    st.session_state[platz_key] = runde["plaetze"].get(sp["name"], 1)
-                st.number_input(f"{sp['name']}: Platz", min_value=1, step=1, key=platz_key)
-                runde["plaetze"][sp["name"]] = st.session_state[platz_key]
-
-    # Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
+    ## Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
     zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
     bonus_empfaenger_pro_runde = []
 
@@ -139,6 +80,38 @@ if st.session_state.spiel_started and st.session_state.spieler:
         # Punktestand für nächste Runde aktualisieren
         for sp in st.session_state.spieler:
             zwischenpunkte[sp["name"]] += sp["gewinne"][runde_idx]
+            
+    # Anzeige
+    for sp in sorted(st.session_state.spieler, key=lambda x: -x["punkte"]):
+        zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"],1)}
+        for i in range(len(st.session_state.runden) - 1, -1, -1):
+            runde = st.session_state.runden[i]
+            if i < len(sp["einsaetze"]):
+                bonus_symbol = "★" if bonus_empfaenger_pro_runde[i] and sp["name"] in bonus_empfaenger_pro_runde[i] else ""
+                vorzeichen = "+" if sp['gewinne'][i] > 0 else ""
+                zeile[runde["name"]] = (
+                    f"E: {int(sp['einsaetze'][i])} | "
+                    f"P: {sp['plaetze'][i]} | "
+                    f"{vorzeichen}{round(sp['gewinne'][i],1)}{bonus_symbol}"
+                )
+        daten.append(zeile)
+
+    df = pd.DataFrame(daten)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+    # AUTOMATISCHES SPEICHERN
+    if "spielname" in st.session_state:
+        try:
+            spiel_daten = {
+                "spieler": st.session_state.spieler,
+                "multiplikatoren": st.session_state.multiplikatoren,
+                "runden": st.session_state.runden,
+                "zeitstempel": firestore.SERVER_TIMESTAMP
+            }
+            db.collection("spiele").document(st.session_state.spielname).set(spiel_daten)
+        except Exception as e:
+            st.error(f"Fehler beim Speichern: {e}")            
 
 # Verlaufsgrafik
 st.subheader("📈 Punkteverlauf")
