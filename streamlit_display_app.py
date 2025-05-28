@@ -8,6 +8,7 @@ from firebase_admin import credentials, firestore
 import json
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
+import altair as alt
 
 # 🔄 Auto-Refresh alle 15 Sekunden
 st_autorefresh(interval=15000, key="refresh_viewer")
@@ -78,3 +79,31 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 
 df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
+
+# Data für das Linechart vorbereiten
+line_data = []
+for sp in spieler:
+    for i, runde in enumerate(runden):
+        if i < len(sp["plaetze"]):
+            line_data.append({
+                "Spieler": sp["name"],
+                "Runde": runde["name"],
+                "Platz": sp["plaetze"][i]
+            })
+
+# DataFrame bauen
+platz_df = pd.DataFrame(line_data)
+
+# Runde als sortierte Kategorie behandeln (damit Reihenfolge stimmt)
+platz_df["Runde"] = pd.Categorical(platz_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
+
+# Chart
+st.subheader("🔢 Platzierungsverlauf pro Spieler")
+chart = alt.Chart(platz_df).mark_line(point=True).encode(
+    x=alt.X("Runde:N", title="Runde"),
+    y=alt.Y("Platz:Q", title="Platzierung", scale=alt.Scale(reverse=True)),
+    color="Spieler:N",
+    tooltip=["Spieler", "Runde", "Platz"]
+).properties(height=400)
+
+st.altair_chart(chart, use_container_width=True)
