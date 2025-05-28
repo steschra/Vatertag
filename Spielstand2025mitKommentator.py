@@ -129,75 +129,74 @@ def zufalls_kommentar(kategorie, **kwargs):
         return random.choice(vorlagen).format(**kwargs)
     return None
 
-# Automatische Kommentargenerierung, wenn neue Runde erkannt wird
-anzahl_kommentare = len(kommentare)
-anzahl_runden = len(runden)
-aktuelle_runde = anzahl_runden - 1  # Index der letzten gespielten Runde
+def generiere_kommentare(spieler, runden, multiplikatoren, bonus_empfaenger_pro_runde, kommentare, spiel_ref):
+    """
+    Generiert Kommentare basierend auf dem Zustand nach der letzten abgeschlossenen Runde.
+    Es werden keine Kommentare generiert, wenn keine Runde abgeschlossen ist oder nur 1 Runde existiert (laufende Runde).
+    """
+    anzahl_runden = len(runden)
+    # Kommentare nur generieren, wenn mindestens 2 Runden existieren (also mindestens 1 abgeschlossene)
+    if anzahl_runden < 2:
+        return kommentare  # nichts zu tun
 
-# Prüfen, ob für die aktuelle Runde bereits Kommentare existieren
-vorhandene_kommentare_fuer_runde = [k for k in kommentare if k.get("runde") == aktuelle_runde]
+    letzte_abgeschlossene_runde_idx = anzahl_runden - 2  # die letzte komplett abgeschlossene Runde
 
-if aktuelle_runde >= 0 and aktuelle_runde < len(runden):
-    if not vorhandene_kommentare_fuer_runde:
-        # Punkte vor dieser Runde (also nach Runde aktuelle_runde - 1)
-        if aktuelle_runde == 0:
-            punkte_vor_runde = {sp["name"]: 20.0 for sp in spieler}  # Startpunkte vor Runde 1
-        else:
-            punkte_vor_runde = {}
-            for sp in spieler:
-                punkte_vor_runde[sp["name"]] = 20.0 + sum(sp["gewinne"][:aktuelle_runde])
-        
-        ts = datetime.now().isoformat()
+    # Prüfen, ob für diese Runde schon Kommentare existieren, um doppelte zu vermeiden
+    schon_vorhanden = any(k.get("runde") == letzte_abgeschlossene_runde_idx for k in kommentare)
+    if schon_vorhanden:
+        return kommentare
 
-        # Führender und letzter basierend auf Punkten vor dieser Runde
-        fuehrender_name = max(punkte_vor_runde, key=punkte_vor_runde.get)
-        letzter_name = min(punkte_vor_runde, key=punkte_vor_runde.get)
+    # Punkte nach der letzten abgeschlossenen Runde berechnen
+    punkte_nach_runde = {}
+    for sp in spieler:
+        punkte_nach_runde[sp["name"]] = 20.0 + sum(sp["gewinne"][:letzte_abgeschlossene_runde_idx + 1])
 
-        # Bonus-Empfänger in dieser Runde (bereits berechnet)
-        bonus_empfaenger = bonus_empfaenger_pro_runde[aktuelle_runde]
+    # Führender und Letzter nach letzter abgeschlossener Runde
+    fuehrender_name = max(punkte_nach_runde, key=punkte_nach_runde.get)
+    letzter_name = min(punkte_nach_runde, key=punkte_nach_runde.get)
 
-        # Spieler mit dem höchsten Gewinn in der aktuellen Runde
-        runde_beste = max(spieler, key=lambda x: x["gewinne"][aktuelle_runde])
-        runden_gewinn = round(runde_beste["gewinne"][aktuelle_runde], 1)
+    # Gewinner der letzten Runde (mit höchstem Gewinn in dieser Runde)
+    gewinner_runde = max(spieler, key=lambda x: x["gewinne"][letzte_abgeschlossene_runde_idx])
+    gewinn_betrag = round(gewinner_runde["gewinne"][letzte_abgeschlossene_runde_idx], 1)
 
-        neue_kommentare = [
-            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender_name), "runde": aktuelle_runde},
-            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter_name), "runde": aktuelle_runde},
-            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=runden_gewinn), "runde": aktuelle_runde},
-        ]
-        if bonus_empfaenger and isinstance(bonus_empfaenger, str):
-            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": aktuelle_runde})
+    # Bonus-Empfänger der letzten Runde
+    bonus_empfaenger = None
+    if letzte_abgeschlossene_runde_idx < len(bonus_empfaenger_pro_runde):
+        bonus_empfaenger = bonus_empfaenger_pro_runde[letzte_abgeschlossene_runde_idx]
 
-        kommentare.extend(neue_kommentare)
-        spiel_ref.update({"kommentare": kommentare})
+    ts = datetime.now().isoformat()
 
-# Anzeige aller Kommentare (neueste zuerst)
-from collections import defaultdict
+    neue_kommentare = []
+    neue_kommentare.append({
+        "zeit": ts,
+        "text": zufalls_kommentar("rundegewinner", name=gewinner_runde["name"], gewinn=gewinn_betrag),
+        "runde": letzte_abgeschlossene_runde_idx
+    })
+    if bonus_empfaenger and isinstance(bonus_empfaenger, str):
+        neue_kommentare.append({
+            "zeit": ts,
+            "text": zufalls_kommentar("bonus", name=bonus_empfaenger),
+            "runde": letzte_abgeschlossene_runde_idx
+        })
+    neue_kommentare.append({
+        "zeit": ts,
+        "text": zufalls_kommentar("fuehrung", name=fuehrender_name),
+        "runde": letzte_abgeschlossene_runde_idx
+    })
+    neue_kommentare.append({
+        "zeit": ts,
+        "text": zufalls_kommentar("letzter", name=letzter_name),
+        "runde": letzte_abgeschlossene_runde_idx
+    })
 
-# Nach Rundenindex gruppieren
-gruppen = defaultdict(list)
-for kommentar in kommentare:
-    runde = kommentar.get("runde", -1)
-    gruppen[runde].append(kommentar)
+    kommentare.extend(neue_kommentare)
+    spiel_ref.update({"kommentare": kommentare})
 
-st.header("🎙️ Kommentator (nach Runden gruppiert):")
+    return kommentare
 
-# Sortiere Gruppen nach Rundenindex
-for runden_index in sorted(gruppen.keys()):
-    kommentare_gruppe = gruppen[runden_index]
+# Nachdem die neue Runde hinzugefügt wurde und die Daten aktualisiert sind:
+kommentare = generiere_kommentare(spieler, runden, multiplikatoren, bonus_empfaenger_pro_runde, kommentare, spiel_ref)
 
-    if 0 <= runden_index < len(runden):
-        titel = f"Runde {runden_index + 1}: {runden[runden_index]['name']}"
-    else:
-        titel = f"Runde {runden_index + 1} (Unbekannt)"
-
-    with st.expander(titel, expanded=(runden_index == max(gruppen.keys()))):
-        for eintrag in kommentare_gruppe:
-            try:
-                zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
-            except Exception:
-                zeit_formatiert = eintrag['zeit'][:19]
-            st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
 st.subheader("📈 Punkteentwicklung pro Spieler")
