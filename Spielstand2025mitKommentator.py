@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import random
 import altair as alt
+from datetime import datetime
 
 # Firestore-Verbindung
 
@@ -19,8 +20,9 @@ db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
 savegame_name = "Vatertagsspiele 2025"
+spiel_ref = db.collection("spiele").document(savegame_name)
+spiel_doc = spiel_ref.get()
 
-spiel_doc = db.collection("spiele").document(savegame_name).get()
 if not spiel_doc.exists:
     st.error("Spiel nicht gefunden.")
     st.stop()
@@ -29,6 +31,7 @@ daten = spiel_doc.to_dict()
 spieler = daten["spieler"]
 multiplikatoren = daten["multiplikatoren"]
 runden = daten["runden"]
+kommentare = daten.get("kommentare", [])
 
 # Punkte neu berechnen (wie im Hauptspiel)
 punkteverlauf = []
@@ -70,7 +73,7 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Öffentliche Spielstandsanzeige")
+st.title("🎲 Spielstand:")
 st.subheader(f"Spiel: {savegame_name}")
 
 anzeige = []
@@ -142,26 +145,32 @@ def zufalls_kommentar(kategorie, **kwargs):
         return random.choice(vorlagen).format(**kwargs)
     return None
 
+# Kommentare aktualisieren, falls neue Runde
+anzahl_kommentare = len(kommentare)
+anzahl_runden = len(runden)
+
+if anzahl_runden > anzahl_kommentare:
+    neue_kommentare = []
+    for i in range(anzahl_kommentare, anzahl_runden):
+        ts = datetime.now().isoformat()
+        fuehrender = max(spieler, key=lambda x: x["punkte"])
+        letzter = min(spieler, key=lambda x: x["punkte"])
+        runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
+        bonus_empfaenger = bonus_empfaenger_pro_runde[i]
+        neue_kommentare.extend([
+            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
+            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
+            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+        ])
+        if bonus_empfaenger:
+            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
+    kommentare.extend(neue_kommentare)
+    spiel_ref.update({"kommentare": kommentare})
+
+# Anzeige aller Kommentare (neueste zuerst)
 st.header("🎙️ Kommentator:")
-
-fuehrender = max(spieler, key=lambda x: x["punkte"])
-letzter = min(spieler, key=lambda x: x["punkte"])
-st.info(zufalls_kommentar("fuehrung", name=fuehrender["name"]))
-st.warning(zufalls_kommentar("letzter", name=letzter["name"]))
-
-if runden:
-    letzte_runde_idx = len(runden) - 1
-    beste = max(
-        spieler,
-        key=lambda x: x["gewinne"][letzte_runde_idx] if len(x["gewinne"]) > letzte_runde_idx else -1
-    )
-    gewinn = beste["gewinne"][letzte_runde_idx]
-    if gewinn >= 5:
-        st.success(zufalls_kommentar("rundegewinner", name=beste["name"], gewinn=round(gewinn, 1)))
-
-    bonus_empfaenger = bonus_empfaenger_pro_runde[letzte_runde_idx]
-    if bonus_empfaenger:
-        st.info(zufalls_kommentar("bonus", name=bonus_empfaenger))
+for eintrag in reversed(kommentare):
+    st.markdown(f"`{eintrag['zeit'][:19]}` – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
 st.subheader("📈 Punkteentwicklung pro Spieler")
