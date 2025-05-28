@@ -39,6 +39,7 @@ spieler = daten["spieler"]
 multiplikatoren = daten["multiplikatoren"]
 runden = daten["runden"]
 rundendaten = []
+kommentare = daten.get("kommentare", [])
 
 # Punkte berechnen
 for sp in spieler:
@@ -50,7 +51,6 @@ zwischenpunkte = {sp["name"]: 20.0 for sp in spieler}
 import datetime
 
 bonus_empfaenger_pro_runde = []
-kommentare = []
 
 for i, runde in enumerate(runden):
     rundenname = runde["name"]
@@ -122,16 +122,15 @@ kommentare_bonus_gewinnt = [
     "🧨 **{name}** startet durch! Rubber-Banding at its best: +{gewinn:.1f} Punkte!",
 ]
 
-    # Kommentare generieren
 # Kommentare generieren
 aktueller_fuehrender = max(zwischenpunkte, key=zwischenpunkte.get)
 aktueller_letzter = min(zwischenpunkte, key=zwischenpunkte.get)
 rundensieger = max(gewinne_der_runde, key=lambda x: x[1])
 bonus_empfaenger = letzter_spieler
 
-if i > 0:
+# Nur neue Kommentare erstellen, wenn nicht bereits vorhanden
+if len(kommentare) < i:
     prev = rundendaten[i - 1]
-
     kommentarblock = f"### 🕓 Runde {i}: *{prev['runde']}* ({prev['zeit']})\n"
     kommentarblock += "- " + random.choice(kommentare_fuehrend).format(
         name=prev["fuehrender"], punkte=zwischenpunkte[prev["fuehrender"]]
@@ -153,6 +152,12 @@ if i > 0:
         ) + "\n"
 
     kommentare.append(kommentarblock)
+
+    # 🔐 Kommentare speichern
+    db.collection("spiele").document(FESTER_SPIELNAME).update({
+        "kommentare": kommentare
+    })
+
 
 # Punktetabelle anzeigen
 st.subheader("📊 Aktueller Punktestand")
