@@ -256,7 +256,7 @@ with col4:
 st.subheader("💬 Spielkommentare")
 # Alle Kommentare außer dem letzten anzeigen
 for kommentar in kommentare[:-1]:  # [: -1] = alles außer letzter Eintrag
-    with st.expander(kommentar.split("\n")[0], expanded=True):
+    with st.expander(kommentar.split("\n")[0]):
         st.markdown("\n".join(kommentar.split("\n")[1:]))
 
 
