@@ -68,6 +68,8 @@ for i, runde in enumerate(runden):
         if sp["name"] == letzter_spieler:
             multiplikator *= 1
         gewinn = einsatz * multiplikator
+if sp["name"] == letzter_spieler and gewinn < 0:
+    gewinn = 0  # Kein Punkteverlust durch Rubber-Banding
         sp["einsaetze"].append(einsatz)
         sp["plaetze"].append(platz)
         sp["gewinne"].append(gewinn)
@@ -167,7 +169,7 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
     zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"], 1)}
    # for i in range(len(runden)):
     for i in range(len(runden) - 1, -1, -1):
-        bonus = "*" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
+        bonus = "★" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
         zeile[runden[i]["name"]] = f"E: {sp['einsaetze'][i]} | P: {sp['plaetze'][i]} | +{round(sp['gewinne'][i],1)}{bonus}"
     tabelle.append(zeile)
 
