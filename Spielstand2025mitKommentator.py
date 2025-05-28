@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore
 import json
 import pandas as pd
 import random
+import altair as alt
 
 # Firestore-Verbindung
 
@@ -17,7 +18,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
-savegame_name = "Vatertagsspiele 2025"
+savegame_name = "spiel2025"
 
 spiel_doc = db.collection("spiele").document(savegame_name).get()
 if not spiel_doc.exists:
@@ -30,6 +31,8 @@ multiplikatoren = daten["multiplikatoren"]
 runden = daten["runden"]
 
 # Punkte neu berechnen (wie im Hauptspiel)
+punkteverlauf = []
+
 for sp in spieler:
     sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
     sp["punkte"] = 20.0
@@ -48,6 +51,7 @@ for i, runde in enumerate(runden):
         sp["plaetze"].append(platz)
         sp["gewinne"].append(gewinn)
         sp["punkte"] += gewinn
+        punkteverlauf.append({"Runde": f"{i+1}: {runde['name']}", "Spieler": sp["name"], "Punkte": sp["punkte"]})
 
 for sp in spieler:
     sp["punkte"] = round(sp["punkte"], 2)
@@ -66,7 +70,7 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Spielstand 2025")
+st.title("🎲 Öffentliche Spielstandsanzeige")
 st.subheader(f"Spiel: {savegame_name}")
 
 anzeige = []
@@ -84,18 +88,6 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 df = pd.DataFrame(anzeige)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-# Verlaufsgrafik
-st.subheader("📈 Punkteverlauf")
-df_chart = pd.DataFrame(punkteverlauf)
-chart = alt.Chart(df_chart).mark_line(point=True).encode(
-    x="Runde",
-    y=alt.Y("Punkte", scale=alt.Scale(zero=False)),
-    color="Spieler",
-    tooltip=["Spieler", "Runde", "Punkte"]
-).properties(height=400)
-
-st.altair_chart(chart, use_container_width=True)
-
 # Kommentator-Funktion
 kommentar_templates = {
     "fuehrung": [
@@ -103,24 +95,44 @@ kommentar_templates = {
         "🚀 {name} ist aktuell nicht zu stoppen!",
         "👑 {name} thront an der Spitze – noch...",
         "💪 {name} zeigt allen, wo der Hammer hängt!"
+        "😎 {name} führt – und lässt's aussehen wie ein Spaziergang im Park.",
+        "🎖️ {name} macht den anderen mal eben den Highscore kaputt.",
+        "🦁 {name} brüllt von ganz oben – keine Gnade!",
+        "📈 {name} kennt offenbar nur eine Richtung: aufwärts!"
+
+
     ],
     "letzter": [
         "🥴 {name} kämpft noch... irgendwie.",
         "🐢 {name} kommt wohl mit Anlauf von hinten!",
         "🪫 {name} scheint im Energiesparmodus zu spielen.",
         "📉 {name} braucht einen Motivationsschub!"
+        "💤 {name} scheint das Spiel meditativ anzugehen.",
+        "🍀 {name} hat leider nur das Kleeblatt vergessen.",
+        "📉 {name} sucht vermutlich noch den Turbo-Knopf.",
+        "🧱 {name} baut gerade am Fundament... ganz unten."
+
     ],
     "bonus": [
-        "🎁 Bonus für {name}! Und was macht {name} draus?",
-        "🔥 {name} mit dem Bonus – jetzt kann's krachen!",
-        "🎲 {name} bekommt extra Punkte – Glück oder Können?",
-        "✨ Bonusregen für {name} – viel Spaß!"
+        "🎁 Rubber-Banding für {name}! Und was macht {name} draus?",
+        "🔥 {name} mit Rubber-Banding – jetzt kann's krachen!",
+        "🎲 {name} spielt mit Rubber-Banding – Glück oder Können?",
+        "✨ {name} konnte nichts verlieren – was macht er draus?"
+        "🎉 {name} bekommt Hilfe – aber nutzt er sie auch sinnvoll? 🤔",
+        "🧨 Rubber-Banding für {name} – gleich knallt's hoffentlich!",
+        "💼 {name} hat's irgendwie geschafft abzustauben.",
+        "👀 Alle Augen auf {name} – mit Rubber-Banding gehts Bergauf!"
+
     ],
     "rundegewinner": [
         "💸 {name} sahnt richtig ab mit +{gewinn} Punkten!",
         "🎯 {name} hat die Runde gerockt!",
         "🥳 Runde geht klar an {name} – das war stark!",
         "💥 Boom! {name} hat zugeschlagen: +{gewinn} Punkte!"
+        "🎆 {name} hat die Runde mit Stil gewonnen – Applaus!",
+        "🏹 {name} hat genau ins Schwarze getroffen!",
+        "💰 +{gewinn} Punkte? {name} geht heute shoppen!",
+        "🧙‍♂️ {name} zaubert sich an die Spitze der Runde!"
     ]
 }
 
@@ -150,3 +162,14 @@ if runden:
     bonus_empfaenger = bonus_empfaenger_pro_runde[letzte_runde_idx]
     if bonus_empfaenger:
         st.info(zufalls_kommentar("bonus", name=bonus_empfaenger))
+
+# Punkteverlaufsgrafik
+st.subheader("📈 Punkteentwicklung pro Spieler")
+df_verlauf = pd.DataFrame(punkteverlauf)
+chart = alt.Chart(df_verlauf).mark_line(point=True).encode(
+    x="Runde",
+    y=alt.Y("Punkte", scale=alt.Scale(zero=False)),
+    color="Spieler",
+    tooltip=["Spieler", "Runde", "Punkte"]
+).properties(height=400)
+st.altair_chart(chart, use_container_width=True)
