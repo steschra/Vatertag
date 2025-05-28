@@ -170,7 +170,8 @@ if anzahl_runden > anzahl_kommentare:
 # Anzeige aller Kommentare (neueste zuerst)
 st.header("🎙️ Kommentator:")
 for eintrag in reversed(kommentare):
-    st.markdown(f"**{eintrag['zeit']}** – {eintrag['text']}")
+    zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+    st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
 st.subheader("📈 Punkteentwicklung pro Spieler")
