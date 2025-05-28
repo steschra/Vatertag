@@ -23,7 +23,7 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.header("📊 Spielstand ansehen")
+st.subheader("📊 Spielstand ansehen")
 
 # Spiel auswählen
 spiele_docs = db.collection("spiele").stream()
