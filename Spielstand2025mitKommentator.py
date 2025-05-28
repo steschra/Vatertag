@@ -8,7 +8,6 @@ import altair as alt
 from datetime import datetime
 
 # Firestore-Verbindung
-
 def get_firestore_client():
     if not firebase_admin._apps:
         cred_dict = json.loads(st.secrets["firebase_service_account"])
@@ -19,7 +18,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
-savegame_name = "spiel2025"
+savegame_name = "Vatertagsspiele 2025"
 spiel_ref = db.collection("spiele").document(savegame_name)
 spiel_doc = spiel_ref.get()
 
@@ -73,12 +72,12 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Öffentliche Spielstandsanzeige")
+st.title("🎲 Spielstand:")
 st.subheader(f"Spiel: {savegame_name}")
 
 # Refresh Button
 if st.button("🔄 Seite aktualisieren"):
-    st.rerun()
+    st.experimental_rerun()
 
 anzeige = []
 for sp in sorted(spieler, key=lambda x: -x["punkte"]):
@@ -138,28 +137,28 @@ if anzahl_runden > anzahl_kommentare:
     for i in range(anzahl_kommentare, anzahl_runden):
         if any(i >= len(sp["gewinne"]) for sp in spieler):
             continue
-        ts = datetime.now().isoformat()
+
         fuehrender = max(spieler, key=lambda x: x["punkte"])
         letzter = min(spieler, key=lambda x: x["punkte"])
         runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
         bonus_empfaenger = bonus_empfaenger_pro_runde[i]
+
         neue_kommentare.extend([
-    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
-    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("letzter", name=letzter["name"])},
-    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
-])
-if bonus_empfaenger:
-    neue_kommentare.append({
-        "zeit": datetime.now().isoformat(),
-        "text": zufalls_kommentar("bonus", name=bonus_empfaenger)
-    })
-        if bonus_empfaenger:
-            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
+            {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
+            {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("letzter", name=letzter["name"])},
+            {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+        ])
+        if bonus_empfaenger and isinstance(bonus_empfaenger, str):
+            neue_kommentare.append({
+                "zeit": datetime.now().isoformat(),
+                "text": zufalls_kommentar("bonus", name=bonus_empfaenger)
+            })
+
     kommentare.extend(neue_kommentare)
     spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
-st.header("🎙️ Kommentator sagt:")
+st.header("🎙️ Kommentator:")
 for eintrag in reversed(kommentare):
     try:
         zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
