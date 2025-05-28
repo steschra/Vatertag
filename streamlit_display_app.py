@@ -112,7 +112,7 @@ max_punkte = punkte_df["Punkte"].max()
 chart = alt.Chart(punkte_df).mark_line(point=True).encode(
     x=alt.X("Runde:N", title="Runde", sort=runden_namen),
     y=alt.Y("Punkte:Q", title="Punkte", scale=alt.Scale(domain=[min_punkte, max_punkte])),
-    color="Spieler:N", legend=alt.Legend(orient="bottom")),
+    color="Spieler:N", legend=alt.Legend(orient="bottom"),
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(
     height=400
