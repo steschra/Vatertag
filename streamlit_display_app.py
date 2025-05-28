@@ -100,8 +100,8 @@ punkte_df = pd.DataFrame(punkteverlauf_data)
 punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
 
 # Bereich für y-Achse: min-max der Punkte
-min_punkte = df_verlauf["Punkte"].min()
-max_punkte = df_verlauf["Punkte"].max()
+min_punkte = punkte_df["Punkte"].min()
+max_punkte = punkte_df["Punkte"].max()
 
 # Chart anzeigen
 st.subheader("📈 Punkteverlauf pro Spieler")
@@ -113,3 +113,50 @@ chart = alt.Chart(punkte_df).mark_line(point=True).encode(
 ).properties(height=400)
 
 st.altair_chart(chart, use_container_width=True)
+
+st.subheader("📌 Spielstatistiken")
+# 1. Häufigster Rundensieger
+rundensieger_namen = [runde["rundensieger"][0] for runde in rundendaten]
+rundensieger_counts = pd.Series(rundensieger_namen).value_counts()
+haeufigster_rundensieger = rundensieger_counts.idxmax()
+rundensieger_anzahl = rundensieger_counts.max()
+
+# 2. Höchster Punktestand im Spielverlauf
+df_punkte_max = pd.DataFrame(punkteverlauf)
+max_row = df_punkte_max.loc[df_punkte_max["Punkte"].idxmax()]
+max_punkte = max_row["Punkte"]
+max_punkte_spieler = max_row["Spieler"]
+max_punkte_runde = max_row["Runde"]
+
+# 3. Häufigster Rubber-Banding-Spieler (Bonus-Empfänger)
+bonus_counter = pd.Series(bonus_empfaenger_pro_runde)
+haeufigster_bonus_spieler = bonus_counter.value_counts().idxmax()
+bonus_anzahl = bonus_counter.value_counts().max()
+
+# 4. Meiste Punkte in einer einzelnen Runde
+beste_runde = None
+max_gewinn = -1
+gewinner = None
+rundenname = ""
+
+for runden_index, runde in enumerate(rundendaten):
+    name, gewinn = runde["rundensieger"]
+    if gewinn > max_gewinn:
+        max_gewinn = gewinn
+        gewinner = name
+        rundenname = f"{runden_index + 1}: {runde['runde']}"
+
+# Darstellung in vier Spalten
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("🏆 Häufigster Rundensieger", f"{haeufigster_rundensieger}", f"{rundensieger_anzahl}×")
+
+with col2:
+    st.metric("💯 Höchster Punktestand ever", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
+
+with col3:
+    st.metric("🎁 Häufigster Rubber-Banding-Nutzer", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
+
+with col4:
+    st.metric("🔥 Meisten Punkte in einem Spiel", f"{gewinner}", f"+{max_gewinn:.1f} Punkte ({rundenname})")
