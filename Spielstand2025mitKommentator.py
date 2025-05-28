@@ -144,12 +144,12 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
         bonus_empfaenger = bonus_empfaenger_pro_runde[i]
 
         neue_kommentare.extend([
-    {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"]), "runde": i},
-    {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"]), "runde": i},
-    {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1)), "runde": i},
-])
-if bonus_empfaenger and isinstance(bonus_empfaenger, str):
-    neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": i})
+            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"]), "runde": i},
+            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"]), "runde": i},
+            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1)), "runde": i},
+        ])
+        if bonus_empfaenger and isinstance(bonus_empfaenger, str):
+            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": i})
 
         kommentare.extend(neue_kommentare)
         spiel_ref.update({"kommentare": kommentare})
