@@ -19,7 +19,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
-savegame_name = "Vatertagsspiele 2025"
+savegame_name = "spiel2025"
 spiel_ref = db.collection("spiele").document(savegame_name)
 spiel_doc = spiel_ref.get()
 
@@ -73,7 +73,7 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Spielverlauf:")
+st.title("🎲 Öffentliche Spielstandsanzeige")
 st.subheader(f"Spiel: {savegame_name}")
 
 # Refresh Button
@@ -101,45 +101,25 @@ kommentar_templates = {
         "🏆 {name} führt das Feld an – Respekt!",
         "🚀 {name} ist aktuell nicht zu stoppen!",
         "👑 {name} thront an der Spitze – noch...",
-        "💪 {name} zeigt allen, wo der Hammer hängt!",
-        "😎 {name} führt – und lässt's aussehen wie ein Spaziergang im Park.",
-        "🎖️ {name} macht den anderen mal eben den Highscore kaputt.",
-        "🦁 {name} brüllt von ganz oben – keine Gnade!",
-        "📈 {name} kennt offenbar nur eine Richtung: aufwärts!"
-
-
+        "💪 {name} zeigt allen, wo der Hammer hängt!"
     ],
     "letzter": [
         "🥴 {name} kämpft noch... irgendwie.",
         "🐢 {name} kommt wohl mit Anlauf von hinten!",
         "🪫 {name} scheint im Energiesparmodus zu spielen.",
-        "📉 {name} braucht einen Motivationsschub!",
-        "💤 {name} scheint das Spiel meditativ anzugehen.",
-        "🍀 {name} hat leider nur das Kleeblatt vergessen.",
-        "📉 {name} sucht vermutlich noch den Turbo-Knopf.",
-        "🧱 {name} baut gerade am Fundament... ganz unten."
-
+        "📉 {name} braucht einen Motivationsschub!"
     ],
     "bonus": [
-        "🎁 Rubber-Banding für {name}! Und was macht {name} draus?",
-        "🔥 {name} mit Rubber-Banding – jetzt kann's krachen!",
-        "🎲 {name} spielt mit Rubber-Banding – Glück oder Können?",
-        "✨ {name} konnte nichts verlieren – was macht er draus?",
-        "🎉 {name} bekommt Hilfe – aber nutzt er sie auch sinnvoll? 🤔",
-        "🧨 Rubber-Banding für {name} – gleich knallt's hoffentlich!",
-        "💼 {name} hat's irgendwie geschafft abzustauben.",
-        "👀 Alle Augen auf {name} – mit Rubber-Banding gehts Bergauf!"
-
+        "🎁 Bonus für {name}! Und was macht {name} draus?",
+        "🔥 {name} mit dem Bonus – jetzt kann's krachen!",
+        "🎲 {name} bekommt extra Punkte – Glück oder Können?",
+        "✨ Bonusregen für {name} – viel Spaß!"
     ],
     "rundegewinner": [
         "💸 {name} sahnt richtig ab mit +{gewinn} Punkten!",
         "🎯 {name} hat die Runde gerockt!",
         "🥳 Runde geht klar an {name} – das war stark!",
-        "💥 Boom! {name} hat zugeschlagen: +{gewinn} Punkte!",
-        "🎆 {name} hat die Runde mit Stil gewonnen – Applaus!",
-        "🏹 {name} hat genau ins Schwarze getroffen!",
-        "💰 +{gewinn} Punkte? {name} geht heute shoppen!",
-        "🧙‍♂️ {name} zaubert sich an die Spitze der Runde!"
+        "💥 Boom! {name} hat zugeschlagen: +{gewinn} Punkte!"
     ]
 }
 
@@ -149,34 +129,32 @@ def zufalls_kommentar(kategorie, **kwargs):
         return random.choice(vorlagen).format(**kwargs)
     return None
 
-# Button zur Kommentar-Aktualisierung
-if st.button("🎤 Kommentiere neue Runde"):
-    anzahl_kommentare = len(kommentare)
-    anzahl_runden = len(runden)
+# Automatische Kommentargenerierung, wenn neue Runde erkannt wird
+anzahl_kommentare = len(kommentare)
+anzahl_runden = len(runden)
 
-    if anzahl_runden > anzahl_kommentare:
-        neue_kommentare = []
-        for i in range(anzahl_kommentare, anzahl_runden):
-            if any(i >= len(sp["gewinne"]) for sp in spieler):
-                continue
-            ts = datetime.now().isoformat()
-            fuehrender = max(spieler, key=lambda x: x["punkte"])
-            letzter = min(spieler, key=lambda x: x["punkte"])
-            runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
-            bonus_empfaenger = bonus_empfaenger_pro_runde[i]
-            neue_kommentare.extend([
-                {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
-                {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
-                {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
-            ])
-            if bonus_empfaenger:
-                neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
-        kommentare.extend(neue_kommentare)
-        spiel_ref.update({"kommentare": kommentare})
-        st.success("Kommentare zur neuen Runde wurden hinzugefügt.")
+if anzahl_runden > anzahl_kommentare:
+    neue_kommentare = []
+    for i in range(anzahl_kommentare, anzahl_runden):
+        if any(i >= len(sp["gewinne"]) for sp in spieler):
+            continue
+        ts = datetime.now().isoformat()
+        fuehrender = max(spieler, key=lambda x: x["punkte"])
+        letzter = min(spieler, key=lambda x: x["punkte"])
+        runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
+        bonus_empfaenger = bonus_empfaenger_pro_runde[i]
+        neue_kommentare.extend([
+            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
+            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
+            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+        ])
+        if bonus_empfaenger:
+            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
+    kommentare.extend(neue_kommentare)
+    spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
-st.header("🎙️ Kommentator:")
+st.header("🎙️ Kommentator sagt:")
 for eintrag in reversed(kommentare):
     try:
         zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
