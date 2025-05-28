@@ -18,7 +18,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
-savegame_name = "spiel2025"
+savegame_name = "Vatertagsspiele 2025"
 
 spiel_doc = db.collection("spiele").document(savegame_name).get()
 if not spiel_doc.exists:
