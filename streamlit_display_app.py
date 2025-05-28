@@ -1,5 +1,4 @@
 import streamlit as st
-
 # Muss als erstes Streamlit-Kommando stehen!
 st.set_page_config(page_title="Spielstand ansehen", layout="wide")
 
@@ -13,6 +12,9 @@ import altair as alt
 # 🔄 Auto-Refresh alle 15 Sekunden
 st_autorefresh(interval=15000, key="refresh_viewer")
 
+# 🔒 Fester Spielname – HIER ANPASSEN!
+FESTER_SPIELNAME = "Vatertagsspiele 2025"
+
 # Firestore initialisieren (einmalig)
 def get_firestore_client():
     if not firebase_admin._apps:
@@ -23,18 +25,13 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.subheader("📊 Spielstand ansehen")
+st.title("🎲 Vatertagsspiele 2025 - LIVE")
 
-# Spiel auswählen
-spiele_docs = db.collection("spiele").stream()
-spielnamen = sorted([doc.id for doc in spiele_docs])
-spielname = st.selectbox("Spiel auswählen", spielnamen)
-
-if spielname:
-    spiel_doc = db.collection("spiele").document(spielname).get()
-    if not spiel_doc.exists:
-        st.error("Spiel nicht gefunden.")
-        st.stop()
+# Spiel laden
+spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
+if not spiel_doc.exists:
+    st.error(f"Spiel '{FESTER_SPIELNAME}' nicht gefunden.")
+    st.stop()
 
     daten = spiel_doc.to_dict()
     spieler = daten.get("spieler", [])
@@ -45,6 +42,7 @@ if spielname:
         st.info("Spiel hat keine Spieler oder Runden.")
         st.stop()
 
+st.subheader("📊 - Spielstand)
 # Punkte summieren (nur zur Anzeige)
 for sp in spieler:
     if "gewinne" not in sp:
@@ -80,7 +78,7 @@ df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
 # Punkteverlauf für Linechart vorbereiten
-st.subheader("📈 Punkteverlauf nach Runde")
+st.subheader("📈 - Punkteverlauf")
 
 punkte_daten = []
 runden_namen = [r["name"] for r in runden]
@@ -121,7 +119,7 @@ chart = alt.Chart(punkte_df).mark_line(point=True).encode(
 st.altair_chart(chart, use_container_width=True)
 
 # --- Statistik-Bereich ---
-st.subheader("📌 Spielstatistiken")
+st.subheader("📌 - Spielstatistik")
 
 # 1. Häufigster Rundensieger basierend auf den meisten 1. Plätzen
 rundensieger = []
