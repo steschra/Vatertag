@@ -78,3 +78,7 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 
 df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
+
+st.subheader("Debug: Bonus-Empfänger pro Runde")
+for i, bonus in enumerate(bonus_empfaenger_pro_runde):
+    st.write(f"Runde {i+1}: {bonus}")
