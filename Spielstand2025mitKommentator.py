@@ -178,7 +178,7 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 #Spielkommentare anzeigen
 st.subheader("💬 Spielkommentare")
 for kommentar in kommentare:
-    with st.expander(kommentar.split("\n")[0]):
+    with st.expander(kommentar.split("\n")[0], expanded=True):
         st.markdown("\n".join(kommentar.split("\n")[1:]))
 
 # Verlaufsgrafik
