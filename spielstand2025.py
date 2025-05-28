@@ -88,3 +88,17 @@ chart = alt.Chart(df_chart).mark_line(point=True).encode(
 ).properties(height=400)
 
 st.altair_chart(chart, use_container_width=True)
+aktuelle_runde_index = len(runden) - 1  # Index der letzten Runde (0-basiert)
+aktuelle_runde_name = f"{len(runden)}: {runden[-1]['name']}"
+
+# Vertikale Linie für aktuelle Runde
+rule = alt.Chart(pd.DataFrame({
+    "Runde": [aktuelle_runde_name]
+})).mark_rule(color="red", strokeWidth=2).encode(
+    x="Runde"
+)
+
+chart_final = chart + rule
+
+st.altair_chart(chart_final, use_container_width=True)
+
