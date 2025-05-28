@@ -17,7 +17,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 # Spielname festlegen (fest eingebaut)
-savegame_name = "spiel2025"
+savegame_name = "Vatertagsspiele 2025"
 
 spiel_doc = db.collection("spiele").document(savegame_name).get()
 if not spiel_doc.exists:
@@ -66,7 +66,7 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Öffentliche Spielstandsanzeige")
+st.title("🎲 Spielstand 2025")
 st.subheader(f"Spiel: {savegame_name}")
 
 anzeige = []
