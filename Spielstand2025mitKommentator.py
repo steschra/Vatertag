@@ -194,5 +194,38 @@ chart = alt.Chart(df_chart).mark_line(point=True).encode(
 ).properties(height=400)
 
 st.altair_chart(chart, use_container_width=True)
+
+# 📊 Statistiken anzeigen
+st.subheader("📌 Spielstatistiken")
+
+# 1. Häufigster Rundensieger
+rundensieger_namen = [runde["rundensieger"][0] for runde in rundendaten]
+haeufigster_rundensieger = pd.Series(rundensieger_namen).value_counts().idxmax()
+rundensieger_anzahl = pd.Series(rundensieger_namen).value_counts().max()
+
+# 2. Höchster Punktestand im Spielverlauf
+df_punkte_max = pd.DataFrame(punkteverlauf)
+max_row = df_punkte_max.loc[df_punkte_max["Punkte"].idxmax()]
+max_punkte = max_row["Punkte"]
+max_punkte_spieler = max_row["Spieler"]
+max_punkte_runde = max_row["Runde"]
+
+# 3. Häufigster Rubber-Banding-Spieler (Bonus-Empfänger)
+bonus_counter = pd.Series(bonus_empfaenger_pro_runde)
+haeufigster_bonus_spieler = bonus_counter.value_counts().idxmax()
+bonus_anzahl = bonus_counter.value_counts().max()
+
+# Darstellung
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("🏆 Häufigster Rundensieger", f"{haeufigster_rundensieger}", f"{rundensieger_anzahl}×")
+
+with col2:
+    st.metric("💯 Höchster Punktestand", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
+
+with col3:
+    st.metric("🎁 Häufigster Bonus-Empfänger", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
+
 aktuelle_runde_index = len(runden) - 1  # Index der letzten Runde (0-basiert)
 aktuelle_runde_name = f"{len(runden)}: {runden[-1]['name']}"
