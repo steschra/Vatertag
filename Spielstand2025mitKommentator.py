@@ -193,3 +193,44 @@ chart = alt.Chart(df_verlauf).mark_line(point=True).encode(
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(height=400)
 st.altair_chart(chart, use_container_width=True)
+
+st.subheader("💬 Kommentare aus den vorherigen Runden")
+
+from collections import defaultdict
+gruppen = defaultdict(list)
+for kommentar in kommentare:
+    runde = kommentar.get("runde", -1)
+    gruppen[runde].append(kommentar)
+
+# Falls keine runde indizes gefunden, zeigen wir alle kommentare chronologisch
+if all(r == -1 for r in gruppen.keys()):
+    # Keine runden-Infos, einfach alles chronologisch
+    kommentare_sortiert = sorted(kommentare, key=lambda k: k.get("zeit", ""))
+    with st.expander("Alle Kommentare (chronologisch)", expanded=False):
+        for eintrag in kommentare_sortiert:
+            try:
+                zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+            except Exception:
+                zeit_formatiert = eintrag['zeit'][:19]
+            st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
+else:
+    # Gruppiert nach Runden, nur alle außer der letzten Runde anzeigen
+    letzte_runde = max(gruppen.keys())
+    for runden_index in sorted(gruppen.keys()):
+        if runden_index == letzte_runde:
+            continue  # letzte Runde nicht hier anzeigen
+
+        kommentare_gruppe = gruppen[runden_index]
+        if runden_index >= 0 and runden_index < len(runden):
+            titel = f"Runde {runden_index + 1}: {runden[runden_index]['name']}"
+        else:
+            titel = f"Runde {runden_index + 1} (Unbekannt)"
+
+        with st.expander(titel, expanded=False):
+            for eintrag in kommentare_gruppe:
+                try:
+                    zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+                except Exception:
+                    zeit_formatiert = eintrag['zeit'][:19]
+                st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
+
