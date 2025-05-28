@@ -59,7 +59,7 @@ for sp in spieler:
 # Bonus extrahieren aus gespeicherten Runden
 bonus_empfaenger_pro_runde = []
 for r in runden:
-    bonus_empfaenger_pro_runde.append(r.get("bonus", []))
+    bonus_empfaenger_pro_runde.append(r.get("bonus_empfaenger", []))
 
 # Tabelle bauen
 daten = []
@@ -80,5 +80,5 @@ df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
 st.subheader("Debug: Bonus-Empfänger pro Runde")
-for i, bonus in enumerate(bonus_empfaenger_pro_runde):
-    st.write(f"Runde {i+1}: {bonus}")
+for i, bonus_empfaenger in enumerate(bonus_empfaenger_pro_runde):
+    st.write(f"Runde {i+1}: {bonus_empfaenger}")
