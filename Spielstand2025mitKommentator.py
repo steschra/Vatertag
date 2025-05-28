@@ -155,13 +155,13 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
         spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
-st.write(gruppen)
 from collections import defaultdict
 from datetime import datetime
 
 # Nach Rundenindex gruppieren
 gruppen = defaultdict(list)
 for kommentar in kommentare:
+    st.write(runde)
     runde = kommentar.get("runde", -1)
     gruppen[runde].append(kommentar)
 
@@ -169,6 +169,7 @@ st.header("🎙️ Kommentator (nach Runden gruppiert):")
 
 # Sortiere Gruppen nach rundenindex
 for runden_index in sorted(gruppen.keys()):
+    st.write(gruppen)
     kommentare_gruppe = gruppen[runden_index]
 
     if runden_index >= 0 and runden_index < len(runden):
@@ -219,13 +220,16 @@ else:
     # Gruppiert nach Runden, nur alle außer der letzten Runde anzeigen
     letzte_runde = max(gruppen.keys())
     for runden_index in sorted(gruppen.keys()):
+        st.write(gruppen)
         if runden_index == letzte_runde:
             continue  # letzte Runde nicht hier anzeigen
 
         kommentare_gruppe = gruppen[runden_index]
         if runden_index >= 0 and runden_index < len(runden):
+            st.write(gruppen)
             titel = f"Runde {runden_index + 1}: {runden[runden_index]['name']}"
         else:
+            st.write(gruppen)
             titel = f"Runde {runden_index + 1} (Unbekannt)"
 
         with st.expander(titel, expanded=False):
