@@ -139,23 +139,37 @@ vorhandene_kommentare_fuer_runde = [k for k in kommentare if k.get("runde") == a
 
 if aktuelle_runde >= 0 and aktuelle_runde < len(runden):
     if not vorhandene_kommentare_fuer_runde:
-        if all(aktuelle_runde < len(sp["gewinne"]) for sp in spieler):
-            ts = datetime.now().isoformat()
-            fuehrender = max(spieler, key=lambda x: x["punkte"])
-            letzter = min(spieler, key=lambda x: x["punkte"])
-            runde_beste = max(spieler, key=lambda x: x["gewinne"][aktuelle_runde])
-            bonus_empfaenger = bonus_empfaenger_pro_runde[aktuelle_runde]
+        # Punkte vor dieser Runde (also nach Runde aktuelle_runde - 1)
+        if aktuelle_runde == 0:
+            punkte_vor_runde = {sp["name"]: 20.0 for sp in spieler}  # Startpunkte vor Runde 1
+        else:
+            punkte_vor_runde = {}
+            for sp in spieler:
+                punkte_vor_runde[sp["name"]] = 20.0 + sum(sp["gewinne"][:aktuelle_runde])
+        
+        ts = datetime.now().isoformat()
 
-            neue_kommentare = [
-                {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"]), "runde": aktuelle_runde},
-                {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"]), "runde": aktuelle_runde},
-                {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][aktuelle_runde], 1)), "runde": aktuelle_runde},
-            ]
-            if bonus_empfaenger and isinstance(bonus_empfaenger, str):
-                neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": aktuelle_runde})
+        # Führender und letzter basierend auf Punkten vor dieser Runde
+        fuehrender_name = max(punkte_vor_runde, key=punkte_vor_runde.get)
+        letzter_name = min(punkte_vor_runde, key=punkte_vor_runde.get)
 
-            kommentare.extend(neue_kommentare)
-            spiel_ref.update({"kommentare": kommentare})
+        # Bonus-Empfänger in dieser Runde (bereits berechnet)
+        bonus_empfaenger = bonus_empfaenger_pro_runde[aktuelle_runde]
+
+        # Spieler mit dem höchsten Gewinn in der aktuellen Runde
+        runde_beste = max(spieler, key=lambda x: x["gewinne"][aktuelle_runde])
+        runden_gewinn = round(runde_beste["gewinne"][aktuelle_runde], 1)
+
+        neue_kommentare = [
+            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender_name), "runde": aktuelle_runde},
+            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter_name), "runde": aktuelle_runde},
+            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=runden_gewinn), "runde": aktuelle_runde},
+        ]
+        if bonus_empfaenger and isinstance(bonus_empfaenger, str):
+            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": aktuelle_runde})
+
+        kommentare.extend(neue_kommentare)
+        spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
 from collections import defaultdict
