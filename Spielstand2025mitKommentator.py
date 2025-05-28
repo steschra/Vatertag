@@ -155,6 +155,7 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
         spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
+st.write(gruppen)
 from collections import defaultdict
 from datetime import datetime
 
@@ -203,6 +204,7 @@ for kommentar in kommentare:
     gruppen[runde].append(kommentar)
 
 # Falls keine runde indizes gefunden, zeigen wir alle kommentare chronologisch
+st.write(gruppen)
 if all(r == -1 for r in gruppen.keys()):
     # Keine runden-Infos, einfach alles chronologisch
     kommentare_sortiert = sorted(kommentare, key=lambda k: k.get("zeit", ""))
