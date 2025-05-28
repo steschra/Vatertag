@@ -32,17 +32,17 @@ spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
 if not spiel_doc.exists:
     st.error(f"Spiel '{FESTER_SPIELNAME}' nicht gefunden.")
     st.stop()
+    
+daten = spiel_doc.to_dict()
+spieler = daten.get("spieler", [])
+multiplikatoren = daten.get("multiplikatoren", [])
+runden = daten.get("runden", [])
 
-    daten = spiel_doc.to_dict()
-    spieler = daten.get("spieler", [])
-    multiplikatoren = daten.get("multiplikatoren", [])
-    runden = daten.get("runden", [])
+if not spieler or not runden:
+    st.info("Spiel hat keine Spieler oder Runden.")
+    st.stop()
 
-    if not spieler or not runden:
-        st.info("Spiel hat keine Spieler oder Runden.")
-        st.stop()
-
-st.subheader("📊 - Spielstand")
+st.header("📊 - Spielstand")
 # Punkte summieren (nur zur Anzeige)
 for sp in spieler:
     if "gewinne" not in sp:
