@@ -176,10 +176,11 @@ df = pd.DataFrame(tabelle)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
 #Spielkommentare anzeigen
-st.subheader("💬 Spielkommentare")
-for kommentar in kommentare:
-    with st.expander(kommentar.split("\n")[0], expanded=True):
-        st.markdown("\n".join(kommentar.split("\n")[1:]))
+st.subheader("💬 Spielkommentar")
+if kommentare:
+    st.markdown(kommentare[0])
+else:
+    st.info("Noch kein Kommentar verfügbar.")
 
 # Verlaufsgrafik
 st.subheader("📈 Punkteverlauf")
@@ -250,6 +251,14 @@ with col3:
 
 with col4:
     st.metric("🔥 Meisten Punkte in einem Spiel", f"{gewinner}", f"+{max_gewinn:.1f} Punkte ({rundenname})")
+
+#Spielkommentare anzeigen    
+st.subheader("💬 Spielkommentare")
+# Alle Kommentare außer dem letzten anzeigen
+for kommentar in kommentare[:-1]:  # [: -1] = alles außer letzter Eintrag
+    with st.expander(kommentar.split("\n")[0], expanded=True):
+        st.markdown("\n".join(kommentar.split("\n")[1:]))
+
 
 
 aktuelle_runde_index = len(runden) - 1  # Index der letzten Runde (0-basiert)
