@@ -25,7 +25,7 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.title("🎲 Vatertagsspiele 2025 - LIVE")
+st.header("🎲 Vatertagsspiele 2025 - LIVE")
 
 # Spiel laden
 spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
@@ -42,7 +42,7 @@ if not spieler or not runden:
     st.info("Spiel hat keine Spieler oder Runden.")
     st.stop()
 
-st.header("📊 - Spielstand")
+st.subheader("📊 Spielstand")
 # Punkte summieren (nur zur Anzeige)
 for sp in spieler:
     if "gewinne" not in sp:
@@ -78,7 +78,7 @@ df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
 # Punkteverlauf für Linechart vorbereiten
-st.subheader("📈 - Punkteverlauf")
+st.subheader("📈 Punkteverlauf")
 
 punkte_daten = []
 runden_namen = [r["name"] for r in runden]
@@ -119,7 +119,7 @@ chart = alt.Chart(punkte_df).mark_line(point=True).encode(
 st.altair_chart(chart, use_container_width=True)
 
 # --- Statistik-Bereich ---
-st.subheader("📌 - Spielstatistik")
+st.subheader("📌 Spielstatistik")
 
 # 1. Häufigster Rundensieger basierend auf den meisten 1. Plätzen
 rundensieger = []
