@@ -8,6 +8,7 @@ import json
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 import altair as alt
+import random
 
 # 🔄 Auto-Refresh alle 15 Sekunden
 st_autorefresh(interval=15000, key="refresh_viewer")
@@ -184,3 +185,44 @@ with col3:
 
 with col4:
     st.metric("🔥 Meisten Punkte in einem Spiel", f"{bester_spieler}", f"+{max_gewinn:.1f} Punkte ({beste_runde})")
+
+# --- Kommentar Bereich---
+st.subheader(" Spielkommentare")
+
+kommentare = []
+rundensieger_sätze = [
+    "{} dominiert diese Runde!",
+    "{} setzt sich an die Spitze.",
+    "Starke Leistung von {} – Platz 1!",
+    "{} holt sich den Rundensieg.",
+    "{} marschiert ganz nach oben."
+]
+
+bonus_sätze = [
+    "Bonuspunkt(e) für {} – verdient!",
+    "{} bekommt den Bonus ⭐.",
+    "{} schnappt sich den Bonus!",
+    "Zusätzliche Punkte für {}.",
+    "{} kassiert den Bonus dieser Runde."
+]
+
+for i, runde in enumerate(runden):
+    rundenname = runde["name"]
+    kommentar_parts = [f"**{rundenname}**: "]
+
+    # Rundensieger ermitteln
+    sieger = [sp["name"] for sp in spieler if i < len(sp["plaetze"]) and sp["plaetze"][i] == 1]
+    if sieger:
+        satz = random.choice(rundensieger_sätze)
+        kommentar_parts.append(satz.format(", ".join(sieger)))
+
+    # Bonus-Empfänger ermitteln
+    bonus_empfaenger = runde.get("bonus_empfaenger", [])
+    if bonus_empfaenger:
+        satz = random.choice(bonus_sätze)
+        kommentar_parts.append(satz.format(", ".join(bonus_empfaenger)))
+
+    if not sieger and not bonus_empfaenger:
+        kommentar_parts.append("In dieser Runde passierte nichts Besonderes.")
+
+    kommentare.append(" ".join(kommentar_parts))
