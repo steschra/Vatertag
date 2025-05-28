@@ -99,11 +99,15 @@ punkte_df = pd.DataFrame(punkteverlauf_data)
 # Runde als sortierte Kategorie behandeln
 punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
 
+# Bereich für y-Achse: min-max der Punkte
+min_punkte = df_verlauf["Punkte"].min()
+max_punkte = df_verlauf["Punkte"].max()
+
 # Chart anzeigen
 st.subheader("📈 Punkteverlauf pro Spieler")
 chart = alt.Chart(punkte_df).mark_line(point=True).encode(
     x=alt.X("Runde:N", title="Runde"),
-    y=alt.Y("Punkte:Q", title="Punkteverlauf"),
+    y=alt.Y("Punkte:Q", scale=alt.Scale(domain=[min_punkte, max_punkte]), title="Punkte"),
     color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom")),
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(height=400)
