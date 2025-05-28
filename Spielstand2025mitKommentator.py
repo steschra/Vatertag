@@ -38,7 +38,6 @@ daten = spiel_doc.to_dict()
 spieler = daten["spieler"]
 multiplikatoren = daten["multiplikatoren"]
 runden = daten["runden"]
-kommentare = []
 rundendaten = []
 
 # Punkte berechnen
