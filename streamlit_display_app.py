@@ -187,7 +187,7 @@ with col4:
     st.metric("🔥 Meisten Punkte in einem Spiel", f"{bester_spieler}", f"+{max_gewinn:.1f} Punkte ({beste_runde})")
 
 # --- Kommentar Bereich---
-st.subheader(" Spielkommentare")
+st.subheader("🎙 Kommentare")
 
 kommentare = []
 rundensieger_sätze = [
@@ -226,3 +226,6 @@ for i, runde in enumerate(runden):
         kommentar_parts.append("In dieser Runde passierte nichts Besonderes.")
 
     kommentare.append(" ".join(kommentar_parts))
+
+for kommentar in kommentare:
+    st.markdown(kommentar)
