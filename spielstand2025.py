@@ -62,26 +62,27 @@ for i, runde in enumerate(runden):
     gewinne_der_runde = []
 
     for sp in spieler:
-    einsatz = runde["einsaetze"].get(sp["name"], 0)
-    platz = runde["plaetze"].get(sp["name"], 1)
-    multiplikator = multiplikatoren[platz - 1] if platz - 1 < len(multiplikatoren) else 0
-    gewinn = einsatz * multiplikator
+        einsatz = runde["einsaetze"].get(sp["name"], 0)
+        platz = runde["plaetze"].get(sp["name"], 1)
+        multiplikator = multiplikatoren[platz - 1] if platz - 1 < len(multiplikatoren) else 0
+        gewinn = einsatz * multiplikator
 
-    # Rubber-Banding: Kein Punktverlust für den Letztplatzierten der VORHERIGEN Runde
-    if sp["name"] == letzter_spieler and gewinn < 0:
-        gewinn = 0
+        # Rubber-Banding: Kein Punktverlust für den Letztplatzierten der VORHERIGEN Runde
+        if sp["name"] == letzter_spieler and gewinn < 0:
+            gewinn = 0
 
-    sp["einsaetze"].append(einsatz)
-    sp["plaetze"].append(platz)
-    sp["gewinne"].append(gewinn)
-    sp["punkte"] += gewinn
-    zwischenpunkte[sp["name"]] += gewinn
-    gewinne_der_runde.append((sp["name"], gewinn))
-    punkteverlauf.append({
-        "Runde": f"{i+1}: {runde['name']}",
-        "Spieler": sp["name"],
-        "Punkte": zwischenpunkte[sp["name"]]
-    })
+        sp["einsaetze"].append(einsatz)
+        sp["plaetze"].append(platz)
+        sp["gewinne"].append(gewinn)
+        sp["punkte"] += gewinn
+        zwischenpunkte[sp["name"]] += gewinn
+        gewinne_der_runde.append((sp["name"], gewinn))
+        punkteverlauf.append({
+            "Runde": f"{i+1}: {runde['name']}",
+            "Spieler": sp["name"],
+            "Punkte": zwischenpunkte[sp["name"]]
+        })
+
     rundendaten.append({
     "runde": runde["name"],
     "zeit": datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S"),
