@@ -114,49 +114,51 @@ chart = alt.Chart(punkte_df).mark_line(point=True).encode(
 
 st.altair_chart(chart, use_container_width=True)
 
+# --- Statistik-Bereich ---
 st.subheader("📌 Spielstatistiken")
+
 # 1. Häufigster Rundensieger
-rundensieger_namen = [runde["rundensieger"][0] for runde in rundendaten]
-rundensieger_counts = pd.Series(rundensieger_namen).value_counts()
-haeufigster_rundensieger = rundensieger_counts.idxmax()
-rundensieger_anzahl = rundensieger_counts.max()
+rundensieger = []
+for i, runde in enumerate(runden):
+    max_gewinn = max([sp["gewinne"][i] for sp in spieler if i < len(sp["gewinne"])], default=None)
+    if max_gewinn is not None:
+        gewinner = [sp["name"] for sp in spieler if i < len(sp["gewinne"]) and sp["gewinne"][i] == max_gewinn]
+        rundensieger.extend(gewinner)
 
-# 2. Höchster Punktestand im Spielverlauf
-df_punkte_max = pd.DataFrame(punkteverlauf)
-max_row = df_punkte_max.loc[df_punkte_max["Punkte"].idxmax()]
-max_punkte = max_row["Punkte"]
-max_punkte_spieler = max_row["Spieler"]
-max_punkte_runde = max_row["Runde"]
+if rundensieger:
+    sieger_serie = pd.Series(rundensieger)
+    haeufigster_sieger = sieger_serie.value_counts().idxmax()
+    sieger_anzahl = sieger_serie.value_counts().max()
+    st.markdown(f"🏆 **Häufigster Rundensieger:** {haeufigster_sieger} ({sieger_anzahl}x)")
+else:
+    st.markdown("🏆 Keine Rundensiege erfasst.")
 
-# 3. Häufigster Rubber-Banding-Spieler (Bonus-Empfänger)
-bonus_counter = pd.Series(bonus_empfaenger_pro_runde)
-haeufigster_bonus_spieler = bonus_counter.value_counts().idxmax()
-bonus_anzahl = bonus_counter.value_counts().max()
+# 2. Häufigster Bonusempfänger
+bonus_alle = [name for bonus in bonus_empfaenger_pro_runde for name in (bonus or [])]
+if bonus_alle:
+    bonus_serie = pd.Series(bonus_alle)
+    haeufigster_bonus = bonus_serie.value_counts().idxmax()
+    bonus_anzahl = bonus_serie.value_counts().max()
+    st.markdown(f"🌟 **Häufigster Bonusempfänger:** {haeufigster_bonus} ({bonus_anzahl}x)")
+else:
+    st.markdown("🌟 Keine Bonusempfänger erfasst.")
 
-# 4. Meiste Punkte in einer einzelnen Runde
+# 3. Höchster Punktestand insgesamt
+max_spieler = max(spieler, key=lambda sp: sp["punkte"])
+st.markdown(f"📈 **Höchster Punktestand:** {max_spieler['name']} ({round(max_spieler['punkte'], 1)} Punkte)")
+
+# 4. Beste Runde (höchster Einzelgewinn)
 beste_runde = None
-max_gewinn = -1
-gewinner = None
-rundenname = ""
+bester_spieler = None
+max_gewinn = None
+for sp in spieler:
+    for i, g in enumerate(sp["gewinne"]):
+        if max_gewinn is None or g > max_gewinn:
+            max_gewinn = g
+            bester_spieler = sp["name"]
+            beste_runde = runden[i]["name"]
 
-for runden_index, runde in enumerate(rundendaten):
-    name, gewinn = runde["rundensieger"]
-    if gewinn > max_gewinn:
-        max_gewinn = gewinn
-        gewinner = name
-        rundenname = f"{runden_index + 1}: {runde['runde']}"
-
-# Darstellung in vier Spalten
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric("🏆 Häufigster Rundensieger", f"{haeufigster_rundensieger}", f"{rundensieger_anzahl}×")
-
-with col2:
-    st.metric("💯 Höchster Punktestand ever", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
-
-with col3:
-    st.metric("🎁 Häufigster Rubber-Banding-Nutzer", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
-
-with col4:
-    st.metric("🔥 Meisten Punkte in einem Spiel", f"{gewinner}", f"+{max_gewinn:.1f} Punkte ({rundenname})")
+if max_gewinn is not None:
+    st.markdown(f"💰 **Beste Einzelrunde:** {bester_spieler} in *{beste_runde}* (+{round(max_gewinn, 1)} Punkte)")
+else:
+    st.markdown("💰 Keine Gewinne vorhanden.")
