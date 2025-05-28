@@ -19,7 +19,7 @@ def get_firestore_client():
 db = get_firestore_client()
 
 st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
-st.title("🎲 Vatertagsspiele – Öffentliche Spielstandsanzeige")
+st.title("🎲 Vatertagsspiele 2025 - Spielstand (live)")
 
 # Spiel laden
 spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
