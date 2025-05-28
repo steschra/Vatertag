@@ -4,6 +4,10 @@ from firebase_admin import credentials, firestore
 import json
 import pandas as pd
 import altair as alt
+import streamlit_autorefresh
+
+# Auto-Refresh alle 5 Minuten (300.000 Millisekunden)
+streamlit_autorefresh.st_autorefresh(interval=300_000, key="refresh")
 
 # 🔒 Fester Spielname – HIER ANPASSEN!
 FESTER_SPIELNAME = "Vatertagsspiele 2025"
