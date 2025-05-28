@@ -84,6 +84,18 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 df = pd.DataFrame(anzeige)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
+# Verlaufsgrafik
+st.subheader("📈 Punkteverlauf")
+df_chart = pd.DataFrame(punkteverlauf)
+chart = alt.Chart(df_chart).mark_line(point=True).encode(
+    x="Runde",
+    y=alt.Y("Punkte", scale=alt.Scale(zero=False)),
+    color="Spieler",
+    tooltip=["Spieler", "Runde", "Punkte"]
+).properties(height=400)
+
+st.altair_chart(chart, use_container_width=True)
+
 # Kommentator-Funktion
 kommentar_templates = {
     "fuehrung": [
