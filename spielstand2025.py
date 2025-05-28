@@ -6,7 +6,7 @@ import pandas as pd
 import altair as alt
 
 # 🔒 Fester Spielname – HIER ANPASSEN!
-FESTER_SPIELNAME = "mein_vatertagsspiel_2025"
+FESTER_SPIELNAME = "Vatertagsspiele 2025"
 
 # Firebase verbinden
 def get_firestore_client():
