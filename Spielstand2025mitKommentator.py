@@ -43,55 +43,67 @@ runden = daten["runden"]
 rundendaten = []
 kommentare = daten.get("kommentare", [])
 
-# Punkte berechnen
-for sp in spieler:
-    sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
-    sp["punkte"] = 20.0
+# Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
+    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
+    bonus_empfaenger_pro_runde = []
 
-punkteverlauf = []
-zwischenpunkte = {sp["name"]: 20.0 for sp in spieler}
+    # Leere die Einträge
+    for sp in st.session_state.spieler:
+        sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
 
-bonus_empfaenger_pro_runde = []
+    # Berechnung pro Runde
+    for runde_idx, runde in enumerate(st.session_state.runden):
+        # Bestimme Bonus-Empfänger (ab Runde 2)
+        if runde_idx == 0:
+            bonus_empfaenger = []
+        else:
+            min_punkte = min(zwischenpunkte.values())
+            bonus_empfaenger = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
+        bonus_empfaenger_pro_runde.append(bonus_empfaenger)
 
-for i, runde in enumerate(runden):
-    rundenname = runde["name"]
-    rundenzeit = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S")
+        # Berechne Gewinne
+        for sp in st.session_state.spieler:
+            name = sp["name"]
+            einsatz = runde["einsaetze"].get(name, 0)
+            platz = runde["plaetze"].get(name, 1)
+            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
 
-    letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
-    bonus_empfaenger_pro_runde.append(letzter_spieler)
+            gewinn = einsatz * multiplikator
+            if name in bonus_empfaenger and multiplikator < 0:
+                gewinn = 0  # Bonus für alle Letzten
 
-    gewinne_der_runde = []
+            sp["einsaetze"].append(einsatz)
+            sp["plaetze"].append(platz)
+            sp["gewinne"].append(float(gewinn))
 
-    for sp in spieler:
-        einsatz = runde["einsaetze"].get(sp["name"], 0)
-        platz = runde["plaetze"].get(sp["name"], 1)
-        multiplikator = multiplikatoren[platz - 1] if platz - 1 < len(multiplikatoren) else 0
-        if sp["name"] == letzter_spieler:
-            multiplikator *= 1
-        gewinn = einsatz * multiplikator
-        sp["einsaetze"].append(einsatz)
-        sp["plaetze"].append(platz)
-        sp["gewinne"].append(gewinn)
-        sp["punkte"] += gewinn
-        zwischenpunkte[sp["name"]] += gewinn
-        gewinne_der_runde.append((sp["name"], gewinn))
-        punkteverlauf.append({
-            "Runde": f"{i+1}: {runde['name']}",
-            "Spieler": sp["name"],
-            "Punkte": zwischenpunkte[sp["name"]]
-        })
-    rundendaten.append({
-    "runde": runde["name"],
-    "zeit": datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S"),
-    "fuehrender": max(zwischenpunkte, key=zwischenpunkte.get),
-    "letzter": min(zwischenpunkte, key=zwischenpunkte.get),
-    "rundensieger": max(
-        [(sp["name"], sp["gewinne"][i]) for sp in spieler],
-        key=lambda x: x[1]
-    ),
-    "bonus": bonus_empfaenger_pro_runde[i],
-})
+        # Update Zwischenpunkte für nächste Runde
+        for sp in st.session_state.spieler:
+            zwischenpunkte[sp["name"]] += sp["gewinne"][-1]
 
+    # Aktualisiere Gesamtpunkte
+    for sp in st.session_state.spieler:
+        sp["punkte"] = 20.0 + sum(sp["gewinne"])
+
+    # Spielstand
+    st.header("Spielstand")
+    daten = []
+    # Spieler mit Bonus pro Runde ermitteln
+    bonus_empfaenger_pro_runde = []
+    punkte_zwischen_runden = [ {sp["name"]: 20.0} for sp in st.session_state.spieler ]  # Startpunkte
+
+    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
+    for runde_idx, runde in enumerate(st.session_state.runden):
+        if runde_idx == 0:
+            # In der ersten Runde kein Bonus
+            bonus_empfaenger_pro_runde.append(None)
+        else:
+            min_punkte = min(zwischenpunkte.values())
+            letzte_spieler = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
+            bonus_empfaenger_pro_runde.append(letzte_spieler)
+
+        # Punktestand für nächste Runde aktualisieren
+        for sp in st.session_state.spieler:
+            zwischenpunkte[sp["name"]] += sp["gewinne"][runde_idx]
 
 kommentare_fuehrend = [
     "🥇 **{name}** führt jetzt mit {punkte:.1f} Punkten. Niemand stoppt diesen Siegeszug!",
