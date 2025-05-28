@@ -94,7 +94,7 @@ kommentar_templates = {
         "🏆 {name} führt das Feld an – Respekt!",
         "🚀 {name} ist aktuell nicht zu stoppen!",
         "👑 {name} thront an der Spitze – noch...",
-        "💪 {name} zeigt allen, wo der Hammer hängt!"
+        "💪 {name} zeigt allen, wo der Hammer hängt!",
         "😎 {name} führt – und lässt's aussehen wie ein Spaziergang im Park.",
         "🎖️ {name} macht den anderen mal eben den Highscore kaputt.",
         "🦁 {name} brüllt von ganz oben – keine Gnade!",
@@ -106,7 +106,7 @@ kommentar_templates = {
         "🥴 {name} kämpft noch... irgendwie.",
         "🐢 {name} kommt wohl mit Anlauf von hinten!",
         "🪫 {name} scheint im Energiesparmodus zu spielen.",
-        "📉 {name} braucht einen Motivationsschub!"
+        "📉 {name} braucht einen Motivationsschub!",
         "💤 {name} scheint das Spiel meditativ anzugehen.",
         "🍀 {name} hat leider nur das Kleeblatt vergessen.",
         "📉 {name} sucht vermutlich noch den Turbo-Knopf.",
@@ -117,7 +117,7 @@ kommentar_templates = {
         "🎁 Rubber-Banding für {name}! Und was macht {name} draus?",
         "🔥 {name} mit Rubber-Banding – jetzt kann's krachen!",
         "🎲 {name} spielt mit Rubber-Banding – Glück oder Können?",
-        "✨ {name} konnte nichts verlieren – was macht er draus?"
+        "✨ {name} konnte nichts verlieren – was macht er draus?",
         "🎉 {name} bekommt Hilfe – aber nutzt er sie auch sinnvoll? 🤔",
         "🧨 Rubber-Banding für {name} – gleich knallt's hoffentlich!",
         "💼 {name} hat's irgendwie geschafft abzustauben.",
@@ -128,7 +128,7 @@ kommentar_templates = {
         "💸 {name} sahnt richtig ab mit +{gewinn} Punkten!",
         "🎯 {name} hat die Runde gerockt!",
         "🥳 Runde geht klar an {name} – das war stark!",
-        "💥 Boom! {name} hat zugeschlagen: +{gewinn} Punkte!"
+        "💥 Boom! {name} hat zugeschlagen: +{gewinn} Punkte!",
         "🎆 {name} hat die Runde mit Stil gewonnen – Applaus!",
         "🏹 {name} hat genau ins Schwarze getroffen!",
         "💰 +{gewinn} Punkte? {name} geht heute shoppen!",
@@ -142,7 +142,7 @@ def zufalls_kommentar(kategorie, **kwargs):
         return random.choice(vorlagen).format(**kwargs)
     return None
 
-st.header("🎙️ Kommentator sagt:")
+st.header("🎙️ Kommentator:")
 
 fuehrender = max(spieler, key=lambda x: x["punkte"])
 letzter = min(spieler, key=lambda x: x["punkte"])
