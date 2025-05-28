@@ -6,6 +6,9 @@ import pandas as pd
 import altair as alt
 import streamlit_autorefresh
 
+# Muss ganz früh kommen – noch vor allen anderen st.-Aufrufen!
+st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
+
 # Auto-Refresh alle 5 Minuten (300.000 Millisekunden)
 streamlit_autorefresh.st_autorefresh(interval=300_000, key="refresh")
 
@@ -22,7 +25,6 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
 st.title("🎲 Vatertagsspiele 2025 - Spielstand (live)")
 
 # Spiel laden
