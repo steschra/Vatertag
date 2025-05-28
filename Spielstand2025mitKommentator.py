@@ -144,12 +144,12 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
         bonus_empfaenger = bonus_empfaenger_pro_runde[i]
 
         neue_kommentare.extend([
-            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"]), "runde": i},
+            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"]), "runde": i},
+            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1)), "runde": i},
         ])
         if bonus_empfaenger and isinstance(bonus_empfaenger, str):
-            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
+            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger), "runde": i})
 
         kommentare.extend(neue_kommentare)
         spiel_ref.update({"kommentare": kommentare})
@@ -158,36 +158,28 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
 from collections import defaultdict
 from datetime import datetime
 
-# Kommentare nach Zeit sortieren
-kommentare_sorted = sorted(kommentare, key=lambda c: c["zeit"])
-
-# Gruppen per Zeitabstand bilden (z.B. 60 Sekunden)
+# Nach Rundenindex gruppieren
 gruppen = defaultdict(list)
-letzte_zeit = None
-gruppen_index = -1
-zeit_abstand_schwelle = 60  # Sekunden
-
-for kommentar in kommentare_sorted:
-    zeit_kommentar = datetime.fromisoformat(kommentar["zeit"])
-    if letzte_zeit is None or (zeit_kommentar - letzte_zeit).total_seconds() > zeit_abstand_schwelle:
-        gruppen_index += 1
-    gruppen[gruppen_index].append(kommentar)
-    letzte_zeit = zeit_kommentar
+for kommentar in kommentare:
+    runde = kommentar.get("runde", -1)
+    gruppen[runde].append(kommentar)
 
 st.header("🎙️ Kommentator (nach Runden gruppiert):")
-for gruppen_nr, kommentare_gruppe in gruppen.items():
-    rundennamen = [r["name"] for r in runden]
-    titel = f"Runde {gruppen_nr + 1}: "
-    if gruppen_nr < len(rundennamen):
-        titel += rundennamen[gruppen_nr]
-    else:
-        titel += "Unbekannt"
 
-    with st.expander(titel, expanded=(gruppen_nr == len(gruppen)-1)):
+# Sortiere Gruppen nach rundenindex
+for runden_index in sorted(gruppen.keys()):
+    kommentare_gruppe = gruppen[runden_index]
+
+    if runden_index >= 0 and runden_index < len(runden):
+        titel = f"Runde {runden_index + 1}: {runden[runden_index]['name']}"
+    else:
+        titel = f"Runde {runden_index + 1} (Unbekannt)"
+
+    with st.expander(titel, expanded=(runden_index == max(gruppen.keys()))):
         for eintrag in kommentare_gruppe:
             try:
                 zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
-            except ValueError:
+            except Exception:
                 zeit_formatiert = eintrag['zeit'][:19]
             st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
 
