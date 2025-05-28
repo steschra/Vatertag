@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import altair as alt
 import streamlit_autorefresh
+import uuid
 
 # Muss ganz früh kommen – noch vor allen anderen st.-Aufrufen!
 st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
