@@ -100,11 +100,11 @@ punkte_df = pd.DataFrame(punkteverlauf_data)
 punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
 
 # Chart anzeigen
-st.header("📈 Punkteverlauf pro Spieler")
+st.subheader("📈 Punkteverlauf pro Spieler")
 chart = alt.Chart(punkte_df).mark_line(point=True).encode(
     x=alt.X("Runde:N", title="Runde"),
     y=alt.Y("Punkte:Q", title="Punkteverlauf"),
-    color="Spieler:N",
+    color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom", columns=3)),
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(height=400)
 
