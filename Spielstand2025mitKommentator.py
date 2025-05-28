@@ -38,6 +38,8 @@ daten = spiel_doc.to_dict()
 spieler = daten["spieler"]
 multiplikatoren = daten["multiplikatoren"]
 runden = daten["runden"]
+kommentare = []
+rundendaten = []
 
 # Punkte berechnen
 for sp in spieler:
@@ -78,6 +80,18 @@ for i, runde in enumerate(runden):
             "Spieler": sp["name"],
             "Punkte": zwischenpunkte[sp["name"]]
         })
+    rundendaten.append({
+    "runde": runde["name"],
+    "zeit": pd.Timestamp.now().strftime("%H:%M:%S"),
+    "fuehrender": max(zwischenpunkte, key=zwischenpunkte.get),
+    "letzter": min(zwischenpunkte, key=zwischenpunkte.get),
+    "rundensieger": max(
+        [(sp["name"], sp["gewinne"][i]) for sp in spieler],
+        key=lambda x: x[1]
+    ),
+    "bonus": bonus_empfaenger_pro_runde[i],
+})
+
 
 kommentare_fuehrend = [
     "🥇 **{name}** führt jetzt mit {punkte:.1f} Punkten. Niemand stoppt diesen Siegeszug!",
@@ -116,24 +130,30 @@ aktueller_letzter = min(zwischenpunkte, key=zwischenpunkte.get)
 rundensieger = max(gewinne_der_runde, key=lambda x: x[1])
 bonus_empfaenger = letzter_spieler
 
-kommentarblock = f"### 🕓 Runde {i+1}: *{rundenname}* ({rundenzeit})\n"
+if i > 0:
+    prev = rundendaten[i - 1]
 
-# Führender
-kommentarblock += "- " + random.choice(kommentare_fuehrend).format(name=aktueller_fuehrender, punkte=zwischenpunkte[aktueller_fuehrender]) + "\n"
+    kommentarblock = f"### 🕓 Runde {i}: *{prev['runde']}* ({prev['zeit']})\n"
+    kommentarblock += "- " + random.choice(kommentare_fuehrend).format(
+        name=prev["fuehrender"], punkte=zwischenpunkte[prev["fuehrender"]]
+    ) + "\n"
+    kommentarblock += "- " + random.choice(kommentare_letzter).format(
+        name=prev["letzter"], punkte=zwischenpunkte[prev["letzter"]]
+    ) + "\n"
+    kommentarblock += "- " + random.choice(kommentare_rundensieger).format(
+        name=prev["rundensieger"][0], gewinn=prev["rundensieger"][1]
+    ) + "\n"
 
-# Letzter
-kommentarblock += "- " + random.choice(kommentare_letzter).format(name=aktueller_letzter, punkte=zwischenpunkte[aktueller_letzter]) + "\n"
+    if prev["bonus"] == prev["rundensieger"][0]:
+        kommentarblock += "- " + random.choice(kommentare_bonus_gewinnt).format(
+            name=prev["bonus"], gewinn=prev["rundensieger"][1]
+        ) + "\n"
+    else:
+        kommentarblock += "- " + random.choice(kommentare_bonus).format(
+            name=prev["bonus"]
+        ) + "\n"
 
-# Rundensieger
-kommentarblock += "- " + random.choice(kommentare_rundensieger).format(name=rundensieger[0], gewinn=rundensieger[1]) + "\n"
-
-# Bonuskommentar
-if bonus_empfaenger == rundensieger[0]:
-    kommentarblock += "- " + random.choice(kommentare_bonus_gewinnt).format(name=bonus_empfaenger, gewinn=rundensieger[1]) + "\n"
-else:
-    kommentarblock += "- " + random.choice(kommentare_bonus).format(name=bonus_empfaenger) + "\n"
-
-kommentare.append(kommentarblock)
+    kommentare.append(kommentarblock)
 
 # Punktetabelle anzeigen
 st.subheader("📊 Aktueller Punktestand")
