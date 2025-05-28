@@ -8,6 +8,7 @@ from firebase_admin import credentials, firestore
 import json
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
+import altair as alt
 
 # 🔄 Auto-Refresh alle 15 Sekunden
 st_autorefresh(interval=15000, key="refresh_viewer")
@@ -22,7 +23,7 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.title("Spielstand ansehen")
+st.header("📊 Spielstand ansehen")
 
 # Spiel auswählen
 spiele_docs = db.collection("spiele").stream()
@@ -43,7 +44,6 @@ if spielname:
     if not spieler or not runden:
         st.info("Spiel hat keine Spieler oder Runden.")
         st.stop()
-
 
 # Punkte summieren (nur zur Anzeige)
 for sp in spieler:
@@ -78,3 +78,34 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 
 df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
+
+# Punkteverlauf pro Runde berechnen
+punkteverlauf_data = []
+startpunkte = {sp["name"]: 20.0 for sp in spieler}
+
+for i, runde in enumerate(runden):
+    for sp in spieler:
+        name = sp["name"]
+        punkte_bis_dahin = startpunkte[name] + sum(sp["gewinne"][:i+1]) if i < len(sp["gewinne"]) else startpunkte[name]
+        punkteverlauf_data.append({
+            "Spieler": name,
+            "Runde": runde["name"],
+            "Punkte": round(punkte_bis_dahin, 1)
+        })
+
+# DataFrame bauen
+punkte_df = pd.DataFrame(punkteverlauf_data)
+
+# Runde als sortierte Kategorie behandeln
+punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
+
+# Chart anzeigen
+st.subheader("📈 Punkteverlauf pro Spieler")
+chart = alt.Chart(punkte_df).mark_line(point=True).encode(
+    x=alt.X("Runde:N", title="Runde"),
+    y=alt.Y("Punkte:Q", title="Punkteverlauf"),
+    color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom")),
+    tooltip=["Spieler", "Runde", "Punkte"]
+).properties(height=400)
+
+st.altair_chart(chart, use_container_width=True)
