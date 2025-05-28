@@ -1,8 +1,13 @@
 import streamlit as st
+
+# Muss als erstes Streamlit-Kommando stehen!
+st.set_page_config(page_title="Spielstand ansehen", layout="wide")
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 import pandas as pd
+from streamlit_autorefresh import st_autorefresh
 
 # 🔄 Auto-Refresh alle 15 Sekunden
 st_autorefresh(interval=15000, key="refresh_viewer")
@@ -17,7 +22,6 @@ def get_firestore_client():
 
 db = get_firestore_client()
 
-st.set_page_config(page_title="Spielstand ansehen", layout="wide")
 st.title("Spielstand ansehen")
 
 # Spiel auswählen
