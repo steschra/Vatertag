@@ -166,7 +166,7 @@ for kommentar in kommentare:
     runde = kommentar.get("runde", -1)
     gruppen[runde].append(kommentar)
 
-st.header("🎙️ Kommentator (Historie):")
+st.header("🎙️ Kommentator (nach Runden gruppiert):")
 
 # Sortiere Gruppen nach Rundenindex
 for runden_index in sorted(gruppen.keys()):
@@ -194,4 +194,4 @@ chart = alt.Chart(df_verlauf).mark_line(point=True).encode(
     color="Spieler",
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(height=400)
-st.altair_chart(chart, use_container_width=True
+st.altair_chart(chart, use_container_width=True)
