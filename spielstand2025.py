@@ -50,7 +50,7 @@ for i, runde in enumerate(runden):
         platz = runde["plaetze"].get(sp["name"], 1)
         multiplikator = multiplikatoren[platz - 1] if platz - 1 < len(multiplikatoren) else 0
         if sp["name"] == letzter_spieler:
-            multiplikator *= 2
+            multiplikator *= 1
         gewinn = einsatz * multiplikator
         sp["einsaetze"].append(einsatz)
         sp["plaetze"].append(platz)
