@@ -129,27 +129,28 @@ aktueller_letzter = min(zwischenpunkte, key=zwischenpunkte.get)
 rundensieger = max(gewinne_der_runde, key=lambda x: x[1])
 bonus_empfaenger = letzter_spieler
 
-# Nur neue Kommentare erstellen, wenn nicht bereits vorhanden
-if len(kommentare) < i:
-    prev = rundendaten[i - 1]
-    kommentarblock = f"### 🕓 Runde {i}: *{prev['runde']}* ({prev['zeit']})\n"
+# Kommentare für alle abgeschlossenen Runden (alle außer der letzten)
+for j in range(len(rundendaten) - 1):
+    rd = rundendaten[j]
+
+    kommentarblock = f"### 🕓 Runde {j+1}: *{rd['runde']}* ({rd['zeit']})\n"
     kommentarblock += "- " + random.choice(kommentare_fuehrend).format(
-        name=prev["fuehrender"], punkte=zwischenpunkte[prev["fuehrender"]]
+        name=rd["fuehrender"], punkte=zwischenpunkte[rd["fuehrender"]]
     ) + "\n"
     kommentarblock += "- " + random.choice(kommentare_letzter).format(
-        name=prev["letzter"], punkte=zwischenpunkte[prev["letzter"]]
+        name=rd["letzter"], punkte=zwischenpunkte[rd["letzter"]]
     ) + "\n"
     kommentarblock += "- " + random.choice(kommentare_rundensieger).format(
-        name=prev["rundensieger"][0], gewinn=prev["rundensieger"][1]
+        name=rd["rundensieger"][0], gewinn=rd["rundensieger"][1]
     ) + "\n"
 
-    if prev["bonus"] == prev["rundensieger"][0]:
+    if rd["bonus"] == rd["rundensieger"][0]:
         kommentarblock += "- " + random.choice(kommentare_bonus_gewinnt).format(
-            name=prev["bonus"], gewinn=prev["rundensieger"][1]
+            name=rd["bonus"], gewinn=rd["rundensieger"][1]
         ) + "\n"
     else:
         kommentarblock += "- " + random.choice(kommentare_bonus).format(
-            name=prev["bonus"]
+            name=rd["bonus"]
         ) + "\n"
 
     kommentare.append(kommentarblock)
