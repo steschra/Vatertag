@@ -117,22 +117,19 @@ st.altair_chart(chart, use_container_width=True)
 # --- Statistik-Bereich ---
 st.subheader("📌 Spielstatistiken")
 
-# 1. Häufigster Rundensieger
+# 1. Häufigster Rundensieger basierend auf den meisten 1. Plätzen
 rundensieger = []
-for i, runde in enumerate(runden):
-    max_gewinn = max([sp["gewinne"][i] for sp in spieler if i < len(sp["gewinne"])], default=None)
-    if max_gewinn is not None:
-        gewinner = [sp["name"] for sp in spieler if i < len(sp["gewinne"]) and sp["gewinne"][i] == max_gewinn]
-        rundensieger.extend(gewinner)
+for sp in spieler:
+    rundensieger.extend([sp["name"]] * sp["plaetze"].count(1))
 
 if rundensieger:
     sieger_serie = pd.Series(rundensieger)
     haeufigster_sieger = sieger_serie.value_counts().idxmax()
     sieger_anzahl = sieger_serie.value_counts().max()
-    st.markdown(f"🏆 **Häufigster Rundensieger:** {haeufigster_sieger} ({sieger_anzahl}x)")
+    st.markdown(f"🏆 **Häufigster Rundensieger (1. Plätze):** {haeufigster_sieger} ({sieger_anzahl}x)")
 else:
-    st.markdown("🏆 Keine Rundensiege erfasst.")
-
+    st.markdown("🏆 Keine ersten Plätze vergeben.")
+    
 # 2. Häufigster Bonusempfänger
 bonus_alle = [name for bonus in bonus_empfaenger_pro_runde for name in (bonus or [])]
 if bonus_alle:
@@ -143,9 +140,28 @@ if bonus_alle:
 else:
     st.markdown("🌟 Keine Bonusempfänger erfasst.")
 
-# 3. Höchster Punktestand insgesamt
-max_spieler = max(spieler, key=lambda sp: sp["punkte"])
-st.markdown(f"📈 **Höchster Punktestand:** {max_spieler['name']} ({round(max_spieler['punkte'], 1)} Punkte)")
+# 3. Höchster Punktestand über alle Runden
+punktentwicklung = {sp["name"]: [20.0] for sp in spieler}  # Startpunkte
+
+for r_idx in range(len(runden)):
+    for sp in spieler:
+        letzter_punktestand = punktentwicklung[sp["name"]][-1]
+        gewinn = sp["gewinne"][r_idx] if r_idx < len(sp["gewinne"]) else 0
+        punktentwicklung[sp["name"]].append(letzter_punktestand + gewinn)
+
+# Maximalwert suchen
+max_punkte = -float("inf")
+max_spieler = ""
+runde_nummer = -1
+
+for name, punkte_liste in punktentwicklung.items():
+    for idx, wert in enumerate(punkte_liste):
+        if wert > max_punkte:
+            max_punkte = wert
+            max_spieler = name
+            runde_nummer = idx  # idx == 0 ist Startwert
+
+st.markdown(f"📈 **Höchster Punktestand:** {max_spieler} mit {round(max_punkte, 1)} Punkten nach Runde {runde_nummer}")
 
 # 4. Beste Runde (höchster Einzelgewinn)
 beste_runde = None
