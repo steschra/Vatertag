@@ -44,27 +44,37 @@ if spielname:
         st.info("Spiel hat keine Spieler oder Runden.")
         st.stop()
 
-    # Punkte berechnen (zur Sicherheit)
-    for sp in spieler:
-        sp["punkte"] = 20.0 + sum(sp.get("gewinne", []))
 
-    # Tabelle aufbauen
-    tabelle = []
-    for sp in sorted(spieler, key=lambda x: -x["punkte"]):
-        zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"], 1)}
-        for i in range(len(runden) - 1, -1, -1):
-            runde = runden[i]
-            bonus_empfaenger = runde.get("bonus_empfaenger", [])
-            bonus_empfaenger = bonus_empfaenger if bonus_empfaenger is not None else []
-            bonus_symbol = "★" if sp["name"] in bonus_empfaenger else ""
-            
-            einsatz = sp.get("einsaetze", [])[i] if i < len(sp.get("einsaetze", [])) else "-"
-            platz = sp.get("plaetze", [])[i] if i < len(sp.get("plaetze", [])) else "-"
-            gewinn = sp.get("gewinne", [])[i] if i < len(sp.get("gewinne", [])) else "-"
-            vorzeichen = "+" if isinstance(gewinn, (int, float)) and gewinn > 0 else ""
+# Punkte summieren (nur zur Anzeige)
+for sp in spieler:
+    if "gewinne" not in sp:
+        sp["gewinne"] = []
+    if "einsaetze" not in sp:
+        sp["einsaetze"] = []
+    if "plaetze" not in sp:
+        sp["plaetze"] = []
 
-            zeile[runde["name"]] = f"E: {einsatz} | P: {platz} | {vorzeichen}{gewinn}{bonus_symbol}"
-        tabelle.append(zeile)
+    sp["punkte"] = 20.0 + sum(sp["gewinne"])
 
-    df = pd.DataFrame(tabelle)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+# Bonus extrahieren aus gespeicherten Runden
+bonus_empfaenger_pro_runde = []
+for r in runden:
+    bonus_empfaenger_pro_runde.append(r.get("bonus", []))
+
+# Tabelle bauen
+daten = []
+for sp in sorted(spieler, key=lambda x: -x["punkte"]):
+    zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"], 1)}
+    for i in range(len(runden) - 1, -1, -1):
+        runde = runden[i]
+        if i < len(sp["einsaetze"]):
+            bonus_symbol = "★" if sp["name"] in bonus_empfaenger_pro_runde[i] else ""
+            vorzeichen = "+" if sp["gewinne"][i] > 0 else ""
+            zeile[runde["name"]] = (
+                f"E: {sp['einsaetze'][i]} | P: {sp['plaetze'][i]} | "
+                f"{vorzeichen}{round(sp['gewinne'][i], 1)}{bonus_symbol}"
+            )
+    daten.append(zeile)
+
+df = pd.DataFrame(daten)
+st.dataframe(df, use_container_width=True, hide_index=True)
