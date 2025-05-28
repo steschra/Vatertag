@@ -144,10 +144,15 @@ if anzahl_runden > anzahl_kommentare:
         runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
         bonus_empfaenger = bonus_empfaenger_pro_runde[i]
         neue_kommentare.extend([
-            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
-        ])
+    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
+    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("letzter", name=letzter["name"])},
+    {"zeit": datetime.now().isoformat(), "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+])
+if bonus_empfaenger:
+    neue_kommentare.append({
+        "zeit": datetime.now().isoformat(),
+        "text": zufalls_kommentar("bonus", name=bonus_empfaenger)
+    })
         if bonus_empfaenger:
             neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
     kommentare.extend(neue_kommentare)
