@@ -73,8 +73,12 @@ for runde_idx, runde in enumerate(runden):
 
 # Anzeige des Spielstands
 st.set_page_config(page_title="Spielstand 2025", layout="wide")
-st.title("🎲 Spielstand:")
+st.title("🎲 Spielverlauf:")
 st.subheader(f"Spiel: {savegame_name}")
+
+# Refresh Button
+if st.button("🔄 Seite aktualisieren"):
+    st.rerun()
 
 anzeige = []
 for sp in sorted(spieler, key=lambda x: -x["punkte"]):
@@ -145,32 +149,39 @@ def zufalls_kommentar(kategorie, **kwargs):
         return random.choice(vorlagen).format(**kwargs)
     return None
 
-# Kommentare aktualisieren, falls neue Runde
-anzahl_kommentare = len(kommentare)
-anzahl_runden = len(runden)
+# Button zur Kommentar-Aktualisierung
+if st.button("🎤 Kommentiere neue Runde"):
+    anzahl_kommentare = len(kommentare)
+    anzahl_runden = len(runden)
 
-if anzahl_runden > anzahl_kommentare:
-    neue_kommentare = []
-    for i in range(anzahl_kommentare, anzahl_runden):
-        ts = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-        fuehrender = max(spieler, key=lambda x: x["punkte"])
-        letzter = min(spieler, key=lambda x: x["punkte"])
-        runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
-        bonus_empfaenger = bonus_empfaenger_pro_runde[i]
-        neue_kommentare.extend([
-            {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
-            {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
-        ])
-        if bonus_empfaenger:
-            neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
-    kommentare.extend(neue_kommentare)
-    spiel_ref.update({"kommentare": kommentare})
+    if anzahl_runden > anzahl_kommentare:
+        neue_kommentare = []
+        for i in range(anzahl_kommentare, anzahl_runden):
+            if any(i >= len(sp["gewinne"]) for sp in spieler):
+                continue
+            ts = datetime.now().isoformat()
+            fuehrender = max(spieler, key=lambda x: x["punkte"])
+            letzter = min(spieler, key=lambda x: x["punkte"])
+            runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
+            bonus_empfaenger = bonus_empfaenger_pro_runde[i]
+            neue_kommentare.extend([
+                {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
+                {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
+                {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
+            ])
+            if bonus_empfaenger:
+                neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
+        kommentare.extend(neue_kommentare)
+        spiel_ref.update({"kommentare": kommentare})
+        st.success("Kommentare zur neuen Runde wurden hinzugefügt.")
 
 # Anzeige aller Kommentare (neueste zuerst)
 st.header("🎙️ Kommentator:")
 for eintrag in reversed(kommentare):
-    zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+    try:
+        zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+    except ValueError:
+        zeit_formatiert = eintrag['zeit'][:19]  # fallback, falls Format unerwartet ist
     st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
