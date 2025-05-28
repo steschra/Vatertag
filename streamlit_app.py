@@ -156,6 +156,9 @@ if st.session_state.spiel_started and st.session_state.spieler:
             bonus_empfaenger = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
         bonus_empfaenger_pro_runde.append(bonus_empfaenger)
 
+        # Bonus im Rundenobjekt speichern
+        st.session_state.runden[runde_idx]["bonus_empfaenger"] = bonus_empfaenger
+
         # Berechne Gewinne
         for sp in st.session_state.spieler:
             name = sp["name"]
