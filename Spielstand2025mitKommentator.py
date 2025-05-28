@@ -6,6 +6,8 @@ import pandas as pd
 import altair as alt
 import random
 import streamlit_autorefresh
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Muss ganz früh kommen – noch vor allen anderen st.-Aufrufen!
 st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
@@ -54,7 +56,7 @@ bonus_empfaenger_pro_runde = []
 
 for i, runde in enumerate(runden):
     rundenname = runde["name"]
-    rundenzeit = datetime.datetime.now().strftime("%H:%M:%S")
+    rundenzeit = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S")
 
     letzter_spieler = min(zwischenpunkte, key=zwischenpunkte.get)
     bonus_empfaenger_pro_runde.append(letzter_spieler)
@@ -81,7 +83,7 @@ for i, runde in enumerate(runden):
         })
     rundendaten.append({
     "runde": runde["name"],
-    "zeit": pd.Timestamp.now().strftime("%H:%M:%S"),
+    "zeit": datetime.now(ZoneInfo("Europe/Berlin")).strftime("%H:%M:%S"),
     "fuehrender": max(zwischenpunkte, key=zwischenpunkte.get),
     "letzter": min(zwischenpunkte, key=zwischenpunkte.get),
     "rundensieger": max(
