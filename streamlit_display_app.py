@@ -42,7 +42,7 @@ if not spiel_doc.exists:
         st.info("Spiel hat keine Spieler oder Runden.")
         st.stop()
 
-st.subheader("📊 - Spielstand)
+st.subheader("📊 - Spielstand")
 # Punkte summieren (nur zur Anzeige)
 for sp in spieler:
     if "gewinne" not in sp:
