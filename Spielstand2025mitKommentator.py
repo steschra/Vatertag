@@ -50,7 +50,6 @@ for sp in spieler:
 
 punkteverlauf = []
 zwischenpunkte = {sp["name"]: 20.0 for sp in spieler}
-import datetime
 
 bonus_empfaenger_pro_runde = []
 
