@@ -126,7 +126,7 @@ if st.session_state.spiel_started and st.session_state.spieler:
             for sp in st.session_state.spieler:
                 einsatz_key = f"einsatz_{i}_{sp['name']}"
                 if einsatz_key not in st.session_state:
-                    st.session_state[einsatz_key] = runde["einsaetze"].get(sp["name"], 1)
+                    st.session_state[einsatz_key] = runde["einsaetze"].get(sp["name"], 0)
                 st.number_input(f"{sp['name']}: Einsatz", min_value=1, max_value=3, step=1, key=einsatz_key)
                 runde["einsaetze"][sp["name"]] = st.session_state[einsatz_key]
 
