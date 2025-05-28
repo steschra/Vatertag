@@ -104,7 +104,7 @@ st.subheader("📈 Punkteverlauf pro Spieler")
 chart = alt.Chart(punkte_df).mark_line(point=True).encode(
     x=alt.X("Runde:N", title="Runde"),
     y=alt.Y("Punkte:Q", title="Punkteverlauf"),
-    color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom", columns=3)),
+    color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom")),
     tooltip=["Spieler", "Runde", "Punkte"]
 ).properties(height=400)
 
