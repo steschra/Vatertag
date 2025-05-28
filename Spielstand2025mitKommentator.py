@@ -1,277 +1,114 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, firestore
-import json
+import pyrebase
 import pandas as pd
-import altair as alt
-import random
-import streamlit_autorefresh
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
-# Muss ganz früh kommen – noch vor allen anderen st.-Aufrufen!
-st.set_page_config(page_title="📺 Live Spielstand", layout="wide")
+st.set_page_config(page_title="Vatertagsspiele 2025 – Live", layout="wide")
 
-# Auto-Refresh alle 5 Minuten (300.000 Millisekunden)
-streamlit_autorefresh.st_autorefresh(interval=300_000, key="refresh")
+# Firebase-Konfiguration
+firebase_config = {
+    "apiKey": "AIzaSyD3E...",
+    "authDomain": "vatertagsspiele.firebaseapp.com",
+    "databaseURL": "https://vatertagsspiele.firebaseio.com",
+    "storageBucket": "vatertagsspiele.appspot.com"
+}
 
-# 🔒 Fester Spielname – HIER ANPASSEN!
-FESTER_SPIELNAME = "Vatertagsspiele 2025"
+firebase = pyrebase.initialize_app(firebase_config)
+db = firebase.database()
 
-# Firebase verbinden
-def get_firestore_client():
-    if not firebase_admin._apps:
-        cred_dict = json.loads(st.secrets["firebase_service_account"])
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred)
-    return firestore.client()
+# Daten abrufen
+spiel_id = "vatertag2025"
+spiel = db.child("spiele").child(spiel_id).get().val()
+spieler = db.child("spieler").order_by_child("spiel_id").equal_to(spiel_id).get().val()
+runden = db.child("runden").order_by_child("spiel_id").equal_to(spiel_id).get().val()
+multiplikatoren = db.child("multiplikatoren").child(spiel_id).get().val()
 
-db = get_firestore_client()
+# Sicherstellen, dass Session-State gesetzt ist
+if "spieler" not in st.session_state:
+    st.session_state.spieler = list(spieler.values()) if spieler else []
+if "runden" not in st.session_state:
+    st.session_state.runden = list(runden.values()) if runden else []
+if "multiplikatoren" not in st.session_state:
+    st.session_state.multiplikatoren = multiplikatoren if multiplikatoren else {}
 
-st.title("🎲 Vatertagsspiele 2025 - Spielstand (live)")
+# Live Punkteverlauf und Gewinnanalyse vorbereiten
+punkteverlauf = []
+gewinnerliste = []
+kommentare = []
+bonus_empfaenger_pro_runde = []
 
-# Spiel laden
-spiel_doc = db.collection("spiele").document(FESTER_SPIELNAME).get()
-if not spiel_doc.exists:
-    st.error(f"Spiel '{FESTER_SPIELNAME}' nicht gefunden.")
-    st.stop()
+zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
 
-daten = spiel_doc.to_dict()
-spieler = daten["spieler"]
-multiplikatoren = daten["multiplikatoren"]
-runden = daten["runden"]
-rundendaten = []
-kommentare = daten.get("kommentare", [])
+for runden_idx, runde in enumerate(st.session_state.runden):
+    name = runde.get("name", f"Runde {runden_idx+1}")
+    runden_multiplikator = st.session_state.multiplikatoren.get(str(runden_idx), 1)
+    einsaetze = {sp["name"]: sp["einsaetze"][runden_idx] for sp in st.session_state.spieler}
+    gewinne = {sp["name"]: sp["gewinne"][runden_idx] for sp in st.session_state.spieler}
 
-# Vor der Berechnung: Punktestand pro Spieler vor jeder Runde speichern
-    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
-    bonus_empfaenger_pro_runde = []
+    top_punkte = -999
+    top_spieler = None
+    kommentar = ""
+    bonus_empfaenger = []
 
-    # Leere die Einträge
     for sp in st.session_state.spieler:
-        sp["einsaetze"], sp["plaetze"], sp["gewinne"] = [], [], []
+        name = sp["name"]
+        einsatz = einsaetze[name]
+        gewinn = gewinne[name]
+        punkte = einsatz * gewinn * runden_multiplikator
+        zwischenpunkte[name] += punkte
+        punkteverlauf.append({
+            "Spieler": name,
+            "Runde": f"{runden_idx + 1}: {runde['name']}",
+            "Punkte": zwischenpunkte[name]
+        })
+        if punkte > top_punkte:
+            top_punkte = punkte
+            top_spieler = name
 
-    # Berechnung pro Runde
-    for runde_idx, runde in enumerate(st.session_state.runden):
-        # Bestimme Bonus-Empfänger (ab Runde 2)
-        if runde_idx == 0:
-            bonus_empfaenger = []
-        else:
-            min_punkte = min(zwischenpunkte.values())
-            bonus_empfaenger = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
-        bonus_empfaenger_pro_runde.append(bonus_empfaenger)
+    # Bonusvergabe
+    min_punkte = min(zwischenpunkte.values())
+    bonus_empfaenger = [name for name, p in zwischenpunkte.items() if p == min_punkte]
+    for name in bonus_empfaenger:
+        zwischenpunkte[name] += 1  # Bonuspunkt
+    bonus_empfaenger_pro_runde.append(bonus_empfaenger)
 
-        # Berechne Gewinne
-        for sp in st.session_state.spieler:
-            name = sp["name"]
-            einsatz = runde["einsaetze"].get(name, 0)
-            platz = runde["plaetze"].get(name, 1)
-            multiplikator = st.session_state.multiplikatoren[platz - 1] if platz - 1 < len(st.session_state.multiplikatoren) else 0
+    kommentar = f"**{top_spieler}** gewinnt Runde **{runden_idx+1} – {runde['name']}** mit **{top_punkte:.1f} Punkten**."
+    if bonus_empfaenger:
+        kommentar += f" Bonuspunkt für: {', '.join(bonus_empfaenger)}"
+    kommentare.append(kommentar)
 
-            gewinn = einsatz * multiplikator
-            if name in bonus_empfaenger and multiplikator < 0:
-                gewinn = 0  # Bonus für alle Letzten
+# Punktetabelle erzeugen
+df = pd.DataFrame([
+    {"Spieler": name, "Punkte": punkte}
+    for name, punkte in zwischenpunkte.items()
+]).sort_values(by="Punkte", ascending=False)
 
-            sp["einsaetze"].append(einsatz)
-            sp["plaetze"].append(platz)
-            sp["gewinne"].append(float(gewinn))
+# HTML-Tabelle mit Bonusanzeige
+table_html = "<table style='width:100%; border-collapse: collapse;'>"
+table_html += "<tr><th style='text-align:left;'>Spieler</th><th style='text-align:right;'>Punkte</th></tr>"
 
-        # Update Zwischenpunkte für nächste Runde
-        for sp in st.session_state.spieler:
-            zwischenpunkte[sp["name"]] += sp["gewinne"][-1]
+for index, row in df.iterrows():
+    is_bonus = any(row["Spieler"] in bonus for bonus in bonus_empfaenger_pro_runde)
+    bonus_style = "background-color: #fffae6;" if is_bonus else ""
+    table_html += f"<tr style='{bonus_style}'><td>{row['Spieler']}</td><td style='text-align:right;'>{row['Punkte']:.1f}</td></tr>"
 
-    # Aktualisiere Gesamtpunkte
-    for sp in st.session_state.spieler:
-        sp["punkte"] = 20.0 + sum(sp["gewinne"])
+table_html += "</table>"
 
-    # Spielstand
-    st.header("Spielstand")
-    daten = []
-    # Spieler mit Bonus pro Runde ermitteln
-    bonus_empfaenger_pro_runde = []
-    punkte_zwischen_runden = [ {sp["name"]: 20.0} for sp in st.session_state.spieler ]  # Startpunkte
+# Streamlit UI
+st.title("🎲 Vatertagsspiele 2025 – Live")
 
-    zwischenpunkte = {sp["name"]: 20.0 for sp in st.session_state.spieler}
-    for runde_idx, runde in enumerate(st.session_state.runden):
-        if runde_idx == 0:
-            # In der ersten Runde kein Bonus
-            bonus_empfaenger_pro_runde.append(None)
-        else:
-            min_punkte = min(zwischenpunkte.values())
-            letzte_spieler = [name for name, punkte in zwischenpunkte.items() if punkte == min_punkte]
-            bonus_empfaenger_pro_runde.append(letzte_spieler)
-
-        # Punktestand für nächste Runde aktualisieren
-        for sp in st.session_state.spieler:
-            zwischenpunkte[sp["name"]] += sp["gewinne"][runde_idx]
-
-kommentare_fuehrend = [
-    "🥇 **{name}** führt jetzt mit {punkte:.1f} Punkten. Niemand stoppt diesen Siegeszug!",
-    "🚀 **{name}** stürmt an die Spitze! {punkte:.1f} Punkte und kein Ende in Sicht!",
-    "👑 **{name}** thront über allen mit {punkte:.1f} Punkten. Ein König unter Spielern!",
-]
-
-kommentare_letzter = [
-    "🐢 **{name}** hinkt mit {punkte:.1f} Punkten hinterher. Vielleicht war das ein geheimer Plan?",
-    "🪨 **{name}** hält das Feld stabil von hinten – {punkte:.1f} Punkte und viel Luft nach oben.",
-    "🌌 **{name}** ist auf Entdeckungsreise im unteren Punktesektor ({punkte:.1f}).",
-]
-
-kommentare_rundensieger = [
-    "💥 **{name}** schnappt sich diese Runde mit +{gewinn:.1f} Punkten. Boom!",
-    "🔥 **{name}** dominiert die Runde! +{gewinn:.1f} Punkte sind kein Zufall.",
-    "🎯 **{name}** trifft ins Schwarze – +{gewinn:.1f} Punkte in einer Runde!",
-]
-
-kommentare_bonus = [
-    "🧲 **{name}** bekommt den Bonus – Letzter sein zahlt sich wohl doch aus!",
-    "🔁 **{name}** nutzt Rubber-Banding – vielleicht klappt's ja nächstes Mal richtig!",
-    "🎁 Bonuszeit für **{name}**! Manchmal ist Verlieren einfach lohnenswert.",
-]
-
-kommentare_bonus_gewinnt = [
-    "⚡ **{name}** nutzt Rubber-Banding und rasiert die Runde mit +{gewinn:.1f} Punkten!",
-    "👀 **{name}** kommt von hinten – mit Bonus +{gewinn:.1f} Punkte! Da staunt das Feld.",
-    "🧨 **{name}** startet durch! Rubber-Banding at its best: +{gewinn:.1f} Punkte!",
-]
-
-# Kommentare generieren
-aktueller_fuehrender = max(zwischenpunkte, key=zwischenpunkte.get)
-aktueller_letzter = min(zwischenpunkte, key=zwischenpunkte.get)
-rundensieger = max(gewinne_der_runde, key=lambda x: x[1])
-bonus_empfaenger = letzter_spieler
-
-# Kommentare für alle abgeschlossenen Runden (alle außer der letzten)
-for j in range(len(rundendaten) - 1):
-    rd = rundendaten[j]
-
-    kommentarblock = f"### 🕓 Runde {j+1}: *{rd['runde']}* ({rd['zeit']})\n"
-    kommentarblock += "- " + random.choice(kommentare_fuehrend).format(
-        name=rd["fuehrender"], punkte=zwischenpunkte[rd["fuehrender"]]
-    ) + "\n"
-    kommentarblock += "- " + random.choice(kommentare_letzter).format(
-        name=rd["letzter"], punkte=zwischenpunkte[rd["letzter"]]
-    ) + "\n"
-    kommentarblock += "- " + random.choice(kommentare_rundensieger).format(
-        name=rd["rundensieger"][0], gewinn=rd["rundensieger"][1]
-    ) + "\n"
-
-    if rd["bonus"] == rd["rundensieger"][0]:
-        kommentarblock += "- " + random.choice(kommentare_bonus_gewinnt).format(
-            name=rd["bonus"], gewinn=rd["rundensieger"][1]
-        ) + "\n"
-    else:
-        kommentarblock += "- " + random.choice(kommentare_bonus).format(
-            name=rd["bonus"]
-        ) + "\n"
-
-    kommentare.append(kommentarblock)
-
-    # 🔐 Kommentare speichern
-    db.collection("spiele").document(FESTER_SPIELNAME).update({
-        "kommentare": kommentare
-    })
-
-
-# Punktetabelle anzeigen
-st.subheader("📊 Aktueller Punktestand")
-tabelle = []
-for sp in sorted(spieler, key=lambda x: -x["punkte"]):
-    zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"], 1)}
-   # for i in range(len(runden)):
-    for i in range(len(runden) - 1, -1, -1):
-        bonus = "*" if sp["name"] == bonus_empfaenger_pro_runde[i] else ""
-        zeile[runden[i]["name"]] = f"E: {sp['einsaetze'][i]} | P: {sp['plaetze'][i]} | +{round(sp['gewinne'][i],1)}{bonus}"
-    tabelle.append(zeile)
-
-df = pd.DataFrame(tabelle)
-st.dataframe(df, use_container_width=True, hide_index=True)
-
-#Spielkommentare anzeigen
-st.subheader("💬 Spielkommentar")
-if kommentare:
-    st.markdown(kommentare[0])
-else:
-    st.info("Noch kein Kommentar verfügbar.")
-
-# Verlaufsgrafik
-st.subheader("📈 Punkteverlauf")
-df_chart = pd.DataFrame(punkteverlauf)
-
-# Nur Runden bis zur vorletzten Runde behalten
-max_runden_index = len(runden) - 2  # da 0-basiert, -2 = vorletzte Runde
-# Runde ist String wie "1: XYZ", wir filtern nach der Rundenzahl vor dem Doppelpunkt
-
-df_chart = df_chart[df_chart["Runde"].apply(
-    lambda r: int(r.split(":")[0]) <= max_runden_index + 1  # +1 da Runde 1-basiert
-)]
-
-chart = alt.Chart(df_chart).mark_line(point=True).encode(
-    x="Runde",
-    y=alt.Y("Punkte", scale=alt.Scale(zero=False)),
-    color="Spieler",
-    tooltip=["Spieler", "Runde", "Punkte"]
-).properties(height=400)
-
-st.altair_chart(chart, use_container_width=True)
-
-# 📊 Spielstatistiken anzeigen
-st.subheader("📌 Spielstatistiken")
-
-# 1. Häufigster Rundensieger
-rundensieger_namen = [runde["rundensieger"][0] for runde in rundendaten]
-rundensieger_counts = pd.Series(rundensieger_namen).value_counts()
-haeufigster_rundensieger = rundensieger_counts.idxmax()
-rundensieger_anzahl = rundensieger_counts.max()
-
-# 2. Höchster Punktestand im Spielverlauf
-df_punkte_max = pd.DataFrame(punkteverlauf)
-max_row = df_punkte_max.loc[df_punkte_max["Punkte"].idxmax()]
-max_punkte = max_row["Punkte"]
-max_punkte_spieler = max_row["Spieler"]
-max_punkte_runde = max_row["Runde"]
-
-# 3. Häufigster Rubber-Banding-Spieler (Bonus-Empfänger)
-bonus_counter = pd.Series(bonus_empfaenger_pro_runde)
-haeufigster_bonus_spieler = bonus_counter.value_counts().idxmax()
-bonus_anzahl = bonus_counter.value_counts().max()
-
-# 4. Meiste Punkte in einer einzelnen Runde
-beste_runde = None
-max_gewinn = -1
-gewinner = None
-rundenname = ""
-
-for runden_index, runde in enumerate(rundendaten):
-    name, gewinn = runde["rundensieger"]
-    if gewinn > max_gewinn:
-        max_gewinn = gewinn
-        gewinner = name
-        rundenname = f"{runden_index + 1}: {runde['runde']}"
-
-# Darstellung in vier Spalten
-col1, col2, col3, col4 = st.columns(4)
+col1, col2 = st.columns(2)
 
 with col1:
-    st.metric("🏆 Häufigster Rundensieger", f"{haeufigster_rundensieger}", f"{rundensieger_anzahl}×")
+    st.subheader("🏆 Aktueller Spielstand")
+    st.markdown(table_html, unsafe_allow_html=True)
 
 with col2:
-    st.metric("💯 Höchster Punktestand ever", f"{max_punkte_spieler}", f"{max_punkte:.1f} Punkte ({max_punkte_runde})")
+    st.subheader("📈 Punkteverlauf")
+    df_chart = pd.DataFrame(punkteverlauf)
+    if not df_chart.empty:
+        st.line_chart(df_chart.pivot(index="Runde", columns="Spieler", values="Punkte"))
 
-with col3:
-    st.metric("🎁 Häufigster Rubber-Banding-Nutzer", f"{haeufigster_bonus_spieler}", f"{bonus_anzahl}×")
-
-with col4:
-    st.metric("🔥 Meisten Punkte in einem Spiel", f"{gewinner}", f"+{max_gewinn:.1f} Punkte ({rundenname})")
-
-#Spielkommentare anzeigen    
-st.subheader("💬 Spielkommentare")
-# Alle Kommentare außer dem letzten anzeigen
-for kommentar in kommentare[:-1]:  # [: -1] = alles außer letzter Eintrag
-    with st.expander(kommentar.split("\n")[0]):
-        st.markdown("\n".join(kommentar.split("\n")[1:]))
-
-
-
-aktuelle_runde_index = len(runden) - 1  # Index der letzten Runde (0-basiert)
-aktuelle_runde_name = f"{len(runden)}: {runden[-1]['name']}"
+st.subheader("📝 Spielkommentare")
+for kommentar in kommentare:
+    with st.expander(kommentar[:120] + "..."):
+        st.markdown(kommentar)
