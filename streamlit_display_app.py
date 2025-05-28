@@ -79,39 +79,44 @@ for sp in sorted(spieler, key=lambda x: -x["punkte"]):
 df = pd.DataFrame(daten)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-# Punkteverlauf pro Runde berechnen
-punkteverlauf_data = []
-startpunkte = {sp["name"]: 20.0 for sp in spieler}
+# Punkteverlauf für Linechart vorbereiten
+punkte_daten = []
+runden_namen = [r["name"] for r in runden]
+runden_index = {name: idx for idx, name in enumerate(runden_namen)}
 
-for i, runde in enumerate(runden):
-    for sp in spieler:
-        name = sp["name"]
-        punkte_bis_dahin = startpunkte[name] + sum(sp["gewinne"][:i+1]) if i < len(sp["gewinne"]) else startpunkte[name]
-        punkteverlauf_data.append({
-            "Spieler": name,
-            "Runde": runde["name"],
-            "Punkte": round(punkte_bis_dahin, 1)
-        })
+for sp in spieler:
+    kumuliert = 20.0
+    for i, runde in enumerate(runden):
+        if i < len(sp["gewinne"]):
+            kumuliert += sp["gewinne"][i]
+            punkte_daten.append({
+                "Spieler": sp["name"],
+                "Runde": runde["name"],
+                "RundenIndex": i,
+                "Punkte": round(kumuliert, 1)
+            })
 
-# DataFrame bauen
-punkte_df = pd.DataFrame(punkteverlauf_data)
+punkte_df = pd.DataFrame(punkte_daten)
 
-# Sortierung: Runde als Kategorie definieren UND explizit sortieren
+# Sortieren und kategorisieren
 punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=runden_namen, ordered=True)
 punkte_df = punkte_df.sort_values("RundenIndex")
 
-# Bereich für y-Achse: min-max der Punkte
+# Min/Max für Y-Achse
 min_punkte = punkte_df["Punkte"].min()
 max_punkte = punkte_df["Punkte"].max()
 
-# Chart anzeigen
-st.subheader("📈 Punkteverlauf pro Spieler")
+# Linechart mit Y-Skala begrenzt
 chart = alt.Chart(punkte_df).mark_line(point=True).encode(
-    x=alt.X("Runde:N", title="Runde"),
-    y=alt.Y("Punkte:Q", scale=alt.Scale(domain=[min_punkte, max_punkte]), title="Punkte"),
-    color=alt.Color("Spieler:N", legend=alt.Legend(orient="bottom")),
+    x=alt.X("Runde:N", title="Runde", sort=runden_namen),
+    y=alt.Y("Punkte:Q", title="Punkte", scale=alt.Scale(domain=[min_punkte, max_punkte])),
+    color="Spieler:N",
     tooltip=["Spieler", "Runde", "Punkte"]
-).properties(height=400)
+).properties(
+    width=800,
+    height=400,
+    title="📈 Punkteverlauf nach Runde"
+)
 
 st.altair_chart(chart, use_container_width=True)
 
