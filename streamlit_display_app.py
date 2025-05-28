@@ -4,6 +4,9 @@ from firebase_admin import credentials, firestore
 import json
 import pandas as pd
 
+# 🔄 Auto-Refresh alle 15 Sekunden
+st_autorefresh(interval=15000, key="refresh_viewer")
+
 # Firestore initialisieren (einmalig)
 def get_firestore_client():
     if not firebase_admin._apps:
