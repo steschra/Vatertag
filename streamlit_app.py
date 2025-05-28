@@ -72,7 +72,6 @@ if not st.session_state.spiel_started:
     
     if buttonLöschen and spielname:
         st.session_state.spielname = spielname
-        db.collection("spiele").document(spielname).delete()
         st.success("Spiel gelöscht")
         st.rerun()
             
