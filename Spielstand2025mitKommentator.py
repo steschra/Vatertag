@@ -155,13 +155,41 @@ if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
         spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
-st.header("🎙️ Kommentator:")
-for eintrag in reversed(kommentare):
-    try:
-        zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
-    except ValueError:
-        zeit_formatiert = eintrag['zeit'][:19]  # fallback, falls Format unerwartet ist
-    st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
+from collections import defaultdict
+from datetime import datetime
+
+# Kommentare nach Zeit sortieren
+kommentare_sorted = sorted(kommentare, key=lambda c: c["zeit"])
+
+# Gruppen per Zeitabstand bilden (z.B. 60 Sekunden)
+gruppen = defaultdict(list)
+letzte_zeit = None
+gruppen_index = -1
+zeit_abstand_schwelle = 60  # Sekunden
+
+for kommentar in kommentare_sorted:
+    zeit_kommentar = datetime.fromisoformat(kommentar["zeit"])
+    if letzte_zeit is None or (zeit_kommentar - letzte_zeit).total_seconds() > zeit_abstand_schwelle:
+        gruppen_index += 1
+    gruppen[gruppen_index].append(kommentar)
+    letzte_zeit = zeit_kommentar
+
+st.header("🎙️ Kommentator (nach Runden gruppiert):")
+for gruppen_nr, kommentare_gruppe in gruppen.items():
+    rundennamen = [r["name"] for r in runden]
+    titel = f"Runde {gruppen_nr + 1}: "
+    if gruppen_nr < len(rundennamen):
+        titel += rundennamen[gruppen_nr]
+    else:
+        titel += "Unbekannt"
+
+    with st.expander(titel, expanded=(gruppen_nr == len(gruppen)-1)):
+        for eintrag in kommentare_gruppe:
+            try:
+                zeit_formatiert = datetime.fromisoformat(eintrag['zeit']).strftime("%d.%m.%Y %H:%M:%S")
+            except ValueError:
+                zeit_formatiert = eintrag['zeit'][:19]
+            st.markdown(f"🕓 **{zeit_formatiert}** – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
 st.subheader("📈 Punkteentwicklung pro Spieler")
