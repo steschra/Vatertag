@@ -133,25 +133,26 @@ def zufalls_kommentar(kategorie, **kwargs):
 anzahl_kommentare = len(kommentare)
 anzahl_runden = len(runden)
 
-if anzahl_runden > anzahl_kommentare:
+if anzahl_runden > anzahl_kommentare and anzahl_runden > 1:
     neue_kommentare = []
-    for i in range(anzahl_kommentare, anzahl_runden):
-        if any(i >= len(sp["gewinne"]) for sp in spieler):
-            continue
+    i = anzahl_runden - 2  # Index der vorherigen Runde
+    if all(i < len(sp["gewinne"]) for sp in spieler):
         ts = datetime.now().isoformat()
         fuehrender = max(spieler, key=lambda x: x["punkte"])
         letzter = min(spieler, key=lambda x: x["punkte"])
         runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
         bonus_empfaenger = bonus_empfaenger_pro_runde[i]
+
         neue_kommentare.extend([
             {"zeit": ts, "text": zufalls_kommentar("fuehrung", name=fuehrender["name"])},
             {"zeit": ts, "text": zufalls_kommentar("letzter", name=letzter["name"])},
             {"zeit": ts, "text": zufalls_kommentar("rundegewinner", name=runde_beste["name"], gewinn=round(runde_beste["gewinne"][i], 1))},
         ])
-        if bonus_empfaenger:
+        if bonus_empfaenger and isinstance(bonus_empfaenger, str):
             neue_kommentare.append({"zeit": ts, "text": zufalls_kommentar("bonus", name=bonus_empfaenger)})
-    kommentare.extend(neue_kommentare)
-    spiel_ref.update({"kommentare": kommentare})
+
+        kommentare.extend(neue_kommentare)
+        spiel_ref.update({"kommentare": kommentare})
 
 # Anzeige aller Kommentare (neueste zuerst)
 st.header("🎙️ Kommentator:")
