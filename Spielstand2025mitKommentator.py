@@ -152,7 +152,7 @@ anzahl_runden = len(runden)
 if anzahl_runden > anzahl_kommentare:
     neue_kommentare = []
     for i in range(anzahl_kommentare, anzahl_runden):
-        ts = datetime.now().isoformat()
+        ts = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
         fuehrender = max(spieler, key=lambda x: x["punkte"])
         letzter = min(spieler, key=lambda x: x["punkte"])
         runde_beste = max(spieler, key=lambda x: x["gewinne"][i])
@@ -170,7 +170,7 @@ if anzahl_runden > anzahl_kommentare:
 # Anzeige aller Kommentare (neueste zuerst)
 st.header("🎙️ Kommentator:")
 for eintrag in reversed(kommentare):
-    st.markdown(f"`{eintrag['zeit'][:19]}` – {eintrag['text']}")
+    st.markdown(f"**{eintrag['zeit']}** – {eintrag['text']}")
 
 # Punkteverlaufsgrafik
 st.subheader("📈 Punkteentwicklung pro Spieler")
