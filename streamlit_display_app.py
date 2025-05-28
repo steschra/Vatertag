@@ -96,8 +96,9 @@ for i, runde in enumerate(runden):
 # DataFrame bauen
 punkte_df = pd.DataFrame(punkteverlauf_data)
 
-# Runde als sortierte Kategorie behandeln
-punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=[r["name"] for r in runden], ordered=True)
+# Sortierung: Runde als Kategorie definieren UND explizit sortieren
+punkte_df["Runde"] = pd.Categorical(punkte_df["Runde"], categories=runden_namen, ordered=True)
+punkte_df = punkte_df.sort_values("RundenIndex")
 
 # Bereich für y-Achse: min-max der Punkte
 min_punkte = punkte_df["Punkte"].min()
