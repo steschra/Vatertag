@@ -82,7 +82,7 @@ for sp in spieler:
 daten = []
 for sp in sorted(spieler, key=lambda x: -x["punkte"]):
     zeile = {"Spieler": sp["name"], "Punkte": round(sp["punkte"], 1)}
-    for i in range(len(runden)):
+    for i in reversed(range(len(runden))):
         if i < len(sp["gewinne"]):
             bonus = bonus_empfaenger_pro_runde[i]
             bonus_symbol = "★" if bonus and sp["name"] in bonus else ""
